@@ -1,0 +1,13 @@
+system,source_blueprint,required_contract,status,verification_method,notes
+Zombie actor,/Game/FirstPerson/Blueprints/Enemies/BP_Zombie,Spawnable actor class,UNVERIFIED,Local Unreal audit,Confirm parent class and exposed initialization
+Zombie controller,/Game/FirstPerson/Blueprints/AIC_Zombie,Possession and AI startup,UNVERIFIED,Local Unreal audit,Confirm Behavior Tree and Blackboard references
+Damage,/Game/FirstPerson/Blueprints/BP_FirstPersonProjectile,Damage delivery contract,UNVERIFIED,Local Unreal audit,Confirm Apply Damage or interface usage
+Player,/Game/FirstPerson/Blueprints/BP_FirstPersonCharacter,Health death inventory interaction,UNVERIFIED,Local Unreal audit,Confirm implemented systems
+Weapon,/Game/FirstPerson/Blueprints/BP_Weapon_Component,Fire ammo reload contract,UNVERIFIED,Local Unreal audit,Confirm whether tutorial-only or production ready
+Loot,/Game/FirstPerson/Blueprints/BP_Pickup_Rifle,Pickup interaction contract,UNVERIFIED,Local Unreal audit,Confirm extensibility for generic loot
+Game mode,/Game/FirstPerson/Blueprints/BP_FirstPersonGameMode,Player class and gameplay startup,PARTIALLY_VERIFIED,Config plus local audit,Configured as global default
+Wave manager,TBD,Start stop remaining enemies complete event,MISSING,Project inspection,Create project-owned adapter if absent
+Objective manager,TBD,Activate update complete fail events,MISSING,Project inspection,Create project-owned system if absent
+Save game,TBD,District objective shortcut persistence,MISSING,Project inspection,Required before final progression implementation
+Safe zone,TBD,Prevent routine spawning and navigation,MISSING,Project inspection,Create BP_ZS_SafeZoneVolume
+Extraction,TBD,Multi-stage finale state machine,MISSING,Project inspection,Create BP_ZS_ExtractionController
