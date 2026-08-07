@@ -1,0 +1,3 @@
+﻿name,enabled,target_allow_list,platform_allow_list,raw_json
+ModelingToolsEditorMode,True,Editor,,"{""Enabled"": true, ""Name"": ""ModelingToolsEditorMode"", ""TargetAllowList"": [""Editor""]}"
+RawInput,True,,,"{""Enabled"": true, ""Name"": ""RawInput""}"

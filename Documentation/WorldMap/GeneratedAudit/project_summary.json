@@ -1,0 +1,59 @@
+{
+  "asset_class_counts": {
+    "AnimBlueprint": 2,
+    "AnimSequence": 13,
+    "BlendSpace": 2,
+    "Blueprint": 21,
+    "CurveFloat": 1,
+    "CurveLinearColor": 2,
+    "CurveLinearColorAtlas": 1,
+    "EosConstants": 1,
+    "InputAction": 4,
+    "InputMappingContext": 2,
+    "MapBuildDataRegistry": 3,
+    "Material": 98,
+    "MaterialFunction": 31,
+    "MaterialInstanceConstant": 11,
+    "MaterialParameterCollection": 1,
+    "ObjectRedirector": 287,
+    "ParticleSystem": 6,
+    "PhysicsAsset": 2,
+    "SkeletalMesh": 2,
+    "Skeleton": 2,
+    "SoundAttenuation": 1,
+    "SoundClass": 2,
+    "SoundConcurrency": 1,
+    "SoundCue": 17,
+    "SoundWave": 32,
+    "StaticMesh": 81,
+    "Texture2D": 142,
+    "TextureCube": 1,
+    "WidgetBlueprint": 1,
+    "World": 9
+  },
+  "asset_count": 779,
+  "asset_mount_counts": {
+    "/Fab": 81,
+    "/Game": 698
+  },
+  "blueprint_count": 24,
+  "declared_plugin_count": 2,
+  "engine_association": "5.5",
+  "engine_version": "5.5.4-40574608+++UE5+Release-5.5",
+  "failed_blueprint_load_count": 0,
+  "generated_at_utc": "2026-08-07T18:53:09.622564+00:00",
+  "map_count": 9,
+  "project_name": "ZombieSeasons",
+  "project_root": "C:\\Users\\malik\\Documents\\Unreal Projects\\ZombieSeasons",
+  "required_generation_plugins": {
+    "EditorScriptingUtilities": "Must be enabled while running audit/generation tools",
+    "Fab": "Needed only for acquiring content",
+    "ModelingToolsEditorMode": "Expected from current project configuration",
+    "PythonScriptPlugin": "Must be enabled while running audit/generation tools"
+  },
+  "scanned_mount_points": [
+    "/Game",
+    "/Fab"
+  ],
+  "uproject_file_version": 3
+}
