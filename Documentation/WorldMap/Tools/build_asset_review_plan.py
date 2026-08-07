@@ -41,7 +41,10 @@ OUTPUT_CSV = OUTPUT_DIRECTORY / "asset_review.csv"
 OUTPUT_BATCHES = OUTPUT_DIRECTORY / "batches.json"
 OUTPUT_SUMMARY = OUTPUT_DIRECTORY / "summary.json"
 
-BATCH_SIZE = 24
+# Smaller batches make visual inspection practical in-editor and reduce memory
+# pressure when City Sample assets are loaded. The asphalt material comparison is
+# still kept as one 10-item batch because it is intentionally compared side by side.
+BATCH_SIZE = 16
 ASPHALT_PREVIEW_CLASS = "MaterialInstanceConstant"
 
 CATEGORY_ORDER = (
@@ -200,9 +203,10 @@ def build_batches(rows: list[dict[str, str]]) -> list[dict[str, object]]:
             if not group:
                 continue
 
+            chunk_size = len(group) if kind == "MATERIAL" else BATCH_SIZE
             chunks = [
-                group[start : start + BATCH_SIZE]
-                for start in range(0, len(group), BATCH_SIZE)
+                group[start : start + chunk_size]
+                for start in range(0, len(group), chunk_size)
             ]
             for batch_index, chunk in enumerate(chunks, start=1):
                 category_token = clean_identifier(category)
