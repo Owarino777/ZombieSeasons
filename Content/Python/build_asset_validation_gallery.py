@@ -4,9 +4,8 @@ Run this script from Unreal Editor after generating the standard-Python review p
 
 py "C:/Users/malik/Documents/Unreal Projects/ZombieSeasons/Content/Python/build_asset_validation_gallery.py"
 
-Each invocation creates only the next missing validation map. The script never
-modifies source Fab/Epic assets and never overwrites an existing validation map.
-Keeping one batch per run limits memory pressure while reviewing City Sample assets.
+Each invocation creates only the next missing validation map. Source Fab/Epic assets
+are never modified and existing validation maps are never overwritten.
 """
 
 from __future__ import annotations
@@ -31,11 +30,27 @@ BATCHES_JSON = REVIEW_DIRECTORY / "batches.json"
 DEFAULT_GALLERY_ROOT = "/Game/ZombieSeasons/Validation/AssetGallery"
 ENGINE_PLANE = "/Engine/BasicShapes/Plane.Plane"
 
-# One batch per invocation avoids loading hundreds of City Sample assets at once.
 BATCHES_PER_RUN = 1
-MESH_GRID_COLUMNS = 4
-MESH_GAP_CM = 300.0
+MESH_GRID_COLUMNS = 6
 MATERIAL_SPACING_CM = 1600.0
+
+# Fixed center spacing is intentional for visual review. Some marketplace meshes
+# report oversized bounds because of pivots/helper geometry, which previously spread
+# small props over an unnecessarily huge validation map.
+CATEGORY_CENTER_SPACING_CM = {
+    "barrier_fence": 650.0,
+    "street_prop": 700.0,
+    "debris_rubble": 900.0,
+    "ruin_general": 1800.0,
+    "vehicle": 1100.0,
+    "stairs_traversal": 1800.0,
+    "door_window": 1700.0,
+    "roof": 2400.0,
+    "structural": 2200.0,
+    "wall_facade": 3000.0,
+    "architecture_general": 3500.0,
+}
+DEFAULT_CENTER_SPACING_CM = 1600.0
 
 
 def log(message: str) -> None:
@@ -74,7 +89,6 @@ def read_review_rows() -> dict[str, dict[str, str]]:
         missing = required - set(reader.fieldnames or ())
         if missing:
             fail("Review CSV is missing columns: " + ", ".join(sorted(missing)))
-
         rows = {row["review_id"]: dict(row) for row in reader}
 
     if not rows:
@@ -126,16 +140,17 @@ def create_new_level(asset_path: str) -> None:
 
     subsystem = get_level_subsystem()
     success = subsystem.new_level(asset_path)
-    if not success:
-        fallback = getattr(unreal, "EditorLevelLibrary", None)
-        if fallback is None or not fallback.new_level(asset_path):
-            fail(f"Unable to create validation map: {asset_path}")
+    if success:
+        return
+
+    fallback = getattr(unreal, "EditorLevelLibrary", None)
+    if fallback is None or not fallback.new_level(asset_path):
+        fail(f"Unable to create validation map: {asset_path}")
 
 
 def save_current_level() -> None:
     subsystem = get_level_subsystem()
-    success = subsystem.save_current_level()
-    if success:
+    if subsystem.save_current_level():
         return
 
     fallback = getattr(unreal, "EditorLevelLibrary", None)
@@ -152,6 +167,7 @@ def spawn_actor(actor_class: Any, location: unreal.Vector, rotation: unreal.Rota
     fallback = getattr(unreal, "EditorLevelLibrary", None)
     if fallback is None:
         fail(f"Unable to spawn actor class: {actor_class}")
+
     actor = fallback.spawn_actor_from_class(actor_class, location, rotation)
     if actor is None:
         fail(f"Unable to spawn actor class: {actor_class}")
@@ -200,20 +216,18 @@ def set_skeletal_mesh(actor: Any, mesh: Any) -> Any:
     fail(f"UE Python exposes no skeletal-mesh setter for {actor}")
 
 
-def asset_bounds(asset: Any) -> tuple[float, float, float]:
-    """Return preview width, depth and floor Z offset in centimeters."""
+def asset_bottom_offset(asset: Any) -> float:
+    """Return a best-effort Z offset that places the asset on the preview ground."""
     try:
         bounds = asset.get_bounds()
         origin = bounds.origin
         extent = bounds.box_extent
-        width = max(100.0, float(extent.x) * 2.0)
-        depth = max(100.0, float(extent.y) * 2.0)
-        bottom_offset = max(0.0, float(extent.z) - float(origin.z))
-        if all(math.isfinite(value) for value in (width, depth, bottom_offset)):
-            return width, depth, bottom_offset
+        value = float(extent.z) - float(origin.z)
+        if math.isfinite(value):
+            return max(0.0, value)
     except Exception:
         pass
-    return 500.0, 500.0, 0.0
+    return 0.0
 
 
 def load_batch_assets(
@@ -254,58 +268,44 @@ def add_preview_lighting(batch_id: str) -> None:
         warn(f"Unable to configure key light intensity: {error}")
 
 
-def build_compact_mesh_layout(
+def build_fixed_mesh_layout(
+    category: str,
     loaded_assets: list[tuple[dict[str, str], Any]],
 ) -> tuple[list[tuple[dict[str, str], Any, unreal.Vector]], float, float]:
-    """Pack assets into a compact bounds-aware grid without changing their scale."""
+    """Place preview meshes in a tight deterministic grid at their original scale."""
     if not loaded_assets:
         return [], 4000.0, 4000.0
 
-    columns = min(MESH_GRID_COLUMNS, max(1, math.ceil(math.sqrt(len(loaded_assets)))))
+    spacing = CATEGORY_CENTER_SPACING_CM.get(category, DEFAULT_CENTER_SPACING_CM)
+    columns = min(
+        MESH_GRID_COLUMNS,
+        max(1, math.ceil(math.sqrt(len(loaded_assets)))),
+    )
     row_count = math.ceil(len(loaded_assets) / columns)
-
-    dimensions = [asset_bounds(asset) for _, asset in loaded_assets]
-    column_widths = [100.0] * columns
-    row_depths = [100.0] * row_count
-
-    for index, (width, depth, _) in enumerate(dimensions):
-        column = index % columns
-        row = index // columns
-        column_widths[column] = max(column_widths[column], width)
-        row_depths[row] = max(row_depths[row], depth)
-
-    x_centers: list[float] = []
-    cursor = 0.0
-    for width in column_widths:
-        x_centers.append(cursor + width * 0.5)
-        cursor += width + MESH_GAP_CM
-    total_width = max(4000.0, cursor - MESH_GAP_CM)
-
-    y_centers: list[float] = []
-    cursor = 0.0
-    for depth in row_depths:
-        y_centers.append(cursor + depth * 0.5)
-        cursor += depth + MESH_GAP_CM
-    total_depth = max(4000.0, cursor - MESH_GAP_CM)
 
     placements: list[tuple[dict[str, str], Any, unreal.Vector]] = []
     for index, (row_data, asset) in enumerate(loaded_assets):
         column = index % columns
-        row = index // columns
-        _, _, bottom_offset = dimensions[index]
+        grid_row = index // columns
         placements.append(
             (
                 row_data,
                 asset,
-                unreal.Vector(x_centers[column], y_centers[row], bottom_offset),
+                unreal.Vector(
+                    float(column) * spacing,
+                    float(grid_row) * spacing,
+                    asset_bottom_offset(asset),
+                ),
             )
         )
 
-    return placements, total_width, total_depth
+    width_cm = max(4000.0, (columns - 1) * spacing + spacing)
+    depth_cm = max(4000.0, (row_count - 1) * spacing + spacing)
+    return placements, width_cm, depth_cm
 
 
 def add_ground_for_bounds(batch_id: str, width_cm: float, depth_cm: float) -> None:
-    """Place one neutral plane sized to the actual compact mesh layout."""
+    """Place one neutral plane sized to the compact review grid."""
     plane_mesh = unreal.load_asset(ENGINE_PLANE)
     if plane_mesh is None:
         warn(f"Engine preview plane unavailable: {ENGINE_PLANE}")
@@ -314,12 +314,20 @@ def add_ground_for_bounds(batch_id: str, width_cm: float, depth_cm: float) -> No
     padding = 500.0
     actor = spawn_actor(
         unreal.StaticMeshActor,
-        unreal.Vector(width_cm * 0.5, depth_cm * 0.5, -2.0),
+        unreal.Vector(
+            (width_cm - padding) * 0.5,
+            (depth_cm - padding) * 0.5,
+            -2.0,
+        ),
         unreal.Rotator(0.0, 0.0, 0.0),
     )
     set_static_mesh(actor, plane_mesh)
     actor.set_actor_scale3d(
-        unreal.Vector((width_cm + padding * 2.0) / 100.0, (depth_cm + padding * 2.0) / 100.0, 1.0)
+        unreal.Vector(
+            (width_cm + padding * 2.0) / 100.0,
+            (depth_cm + padding * 2.0) / 100.0,
+            1.0,
+        )
     )
     set_actor_metadata(
         actor,
@@ -337,7 +345,7 @@ def build_mesh_batch(
     batch_id = str(batch["batch_id"])
     folder = f"ZS_Validation/{batch_id}/Assets"
 
-    placements, width_cm, depth_cm = build_compact_mesh_layout(loaded_assets)
+    placements, width_cm, depth_cm = build_fixed_mesh_layout(category, loaded_assets)
     add_ground_for_bounds(batch_id, width_cm, depth_cm)
 
     for row, asset, location in placements:
