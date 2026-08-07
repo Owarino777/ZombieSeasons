@@ -2,142 +2,137 @@
 
 ## Rule
 
-Only free assets may be used. Do not acquire a paid pack, subscription-only pack, or plugin with an unclear runtime license.
+Only assets that are displayed as **Free** on Fab at acquisition time may be used. Do not acquire a paid pack, subscription-only pack, reference-only pack unsuitable for local UE use, or a plugin with an unclear runtime dependency.
 
-Prefer content packs over runtime plugins. A content pack adds meshes, materials, textures, sounds, or VFX without introducing code dependencies.
+Prefer content packs over runtime plugins. A content pack adds meshes, materials, textures, sounds or VFX without creating a new code dependency.
+
+The listing price and license must be rechecked immediately before acquisition because Fab listings can change.
+
+## Current project gap after audit
+
+The Unreal audit found 779 assets, including 81 under the `/Fab` mount. Those `/Fab` assets are primarily Fab/Megascans support materials, material functions, textures and the Global Foliage Actor. They do **not** provide the large modular environment kit required for the final map.
+
+The project already contains one imported Megascans coconut asset under `/Game/TopDownShooter/Ressources/Fab/Megascans/...`, but the existing environment inventory remains insufficient for the intended city-scale art pass.
 
 ## Access Fab from Unreal Engine 5.5
 
-1. Open `ZombieSeasons.uproject` in Unreal Engine 5.5.
+1. Open `ZombieSeasons.uproject` in Unreal Engine 5.5.4.
 2. Open `Window`.
 3. In `Get Content`, select `Fab`.
-4. Alternative: open the Content Drawer and press the `Fab` button beside `Add`.
-5. If Fab is missing, open `Edit > Plugins`, search `Fab`, enable it, and restart Unreal Editor.
-6. Sign in with the Epic Games account used by the Epic Games Launcher.
+4. Alternative: open the Content Drawer and use the `Fab` button beside `Add`.
+5. Sign in with the Epic Games account used by Epic Games Launcher.
+6. Search the exact pack names below rather than downloading random results.
 
-## Search filters
+## Verified free acquisition set — checked 2026-08-07
 
-For every search:
+### Priority A — City Sample Buildings
 
-- Set price to `Free`.
-- Select compatibility with Unreal Engine.
-- Prefer assets that explicitly support UE 5.5 or can be added to a UE 5.5 project.
-- Prefer `Megascans` and content distributed by Epic or established publishers.
-- Verify the license shown on the product page before adding it to the library.
-- Avoid packs requiring an additional third-party plugin.
+Publisher: Epic Games
+Fab listing ID: `008fe959-5511-428e-93bd-f99b1179f6d5`
+Price status checked: **Free**
+Format: Unreal Engine
+Use: primary modular city architecture.
 
-## Acquisition order
+The listing contains more than 2,000 individual modular building pieces with modern and classic styles. Modules are split into ground levels, corners, walls, entrances and additional architectural pieces. This is the main shared architecture kit for the Hub, Autumn city core, urban edges of Spring and portions of Summer.
 
-Do not download random packs. Acquire by production need.
+Acquisition status: `REQUIRED_NOT_IMPORTED`
 
-### Shared city kit
+### Priority A — City Sample Vehicles
 
-Search terms:
+Publisher: Epic Games
+Fab listing ID: `2909157b-ddfa-4cef-a925-69dc2467021f`
+Price status checked: **Free**
+Format: Unreal Engine
+Use: abandoned street dressing, roadblocks and landmark vehicles.
 
-```text
-free modular urban environment
-free abandoned city
-free road asphalt street props
-free construction barriers
-free abandoned vehicles
-```
+The listing includes 13 vehicle types including sedans, SUVs, pickups, trucks, taxi, bus and delivery van. For ZombieSeasons they should initially be used as static environment dressing; do not introduce Chaos vehicle gameplay into the first map production pass.
 
-Required content:
+Acquisition status: `REQUIRED_NOT_IMPORTED`
 
-- modular walls, doors, windows, stairs, roofs;
-- roads, pavements, curbs, markings;
-- fences, barriers, bins, lamps, signs;
-- damaged and abandoned vehicles;
-- reusable debris.
+### Priority B — Unfinished Building
 
-### Spring
+Publisher: listing currently available on Fab
+Fab listing ID: `25f2e7e5-5cca-48a5-99a3-35c38b8240ac`
+Price status checked: **Free**
+Formats include Unreal Engine / FBX delivery
+Compatibility stated by listing: UE 5.4–5.6
+Use: damaged structures, exposed concrete, rubble and post-apocalyptic building shells.
 
-```text
-free suburban house environment
-free school environment
-Megascans vegetation ivy moss
-free greenhouse props
-```
+The listing advertises 78 assets and is useful for breaking the clean City Sample silhouette. Use primarily in Autumn, Winter and transition zones.
 
-### Summer
+Acquisition status: `RECOMMENDED_NOT_IMPORTED`
 
-```text
-free motel environment
-free gas station environment
-free beach props
-free boardwalk environment
-free amusement park props
-```
+### Priority B — Soul: City
 
-### Autumn
+Publisher: Epic Games
+Fab listing ID: `dd77fee6-0ad2-41ce-b32c-09300c24c9f3`
+Price status checked: **Free**
+Format: Unreal Engine
+Use: lightweight urban props, materials and background dressing.
 
-```text
-free european town environment
-free market props
-free church environment
-free apartment modular environment
-free police station props
-```
+Soul: City is older mobile-oriented content, so do not use it as the visual hero kit. It is useful for secondary props and distant/background dressing where a lower asset cost is desirable.
 
-### Winter and industrial
+Acquisition status: `OPTIONAL_NOT_IMPORTED`
 
-```text
-free industrial environment
-free warehouse environment
-free factory props
-free pipes machinery
-free snow materials
-```
+### Priority C — Electric Dreams Env
 
-### Atmosphere
+Publisher: Epic Games
+Fab listing ID: `d79688f5-29be-4fb2-a650-2d4a813f5306`
+Price status checked: **Free**
+Format: Unreal Engine
+Use: high-quality natural dressing reference and vegetation/PCG study material.
 
-```text
-free Niagara fog
-free Niagara snow
-free ambient city sounds
-free horror ambience
-free fire smoke VFX
-```
+The sample is significantly heavier and includes PCG-focused content. Do not migrate the complete project or enable its experimental systems blindly. Only evaluate specific environment assets after the base greybox and core city kit are stable.
 
-## Selection checklist
+Acquisition status: `OPTIONAL_LATE_PASS`
 
-Before adding an asset to the project, record:
+## Do not download the complete City Sample yet
 
-- Fab listing name;
-- publisher;
-- listing URL in the local acquisition log;
-- license displayed at acquisition time;
-- supported Unreal versions;
-- download size;
-- whether Nanite meshes are included;
-- texture resolutions;
-- material count;
-- whether collision is supplied;
-- whether the pack contains Blueprints or code plugins.
+The full `City Sample` project is also free, but it includes World Partition, Mass AI, crowds, vehicles, Niagara, MetaHumans and other systems that are unnecessary for the first ZombieSeasons map pass.
 
-## Import destination
+Prefer the extracted `City Sample Buildings` and `City Sample Vehicles` packs. This reduces project size and avoids importing systems unrelated to the existing ZombieSeasons gameplay architecture.
 
-Fab packs may create their own top-level folders. Do not move imported files immediately because this can break internal references. First add their exact paths to `AssetRegistry.csv`. Project-owned material instances and prefabs belong under `/Game/ZombieSeasons/`.
+## AI / license safeguard
 
-## Packs to reject
+Some Fab listings expose an `Allows usage with AI` / `NoAI` state. Treat this conservatively:
 
-Reject a pack when:
+- do not upload purchased/downloaded source meshes, textures or source files into generative-AI services;
+- do not use Fab assets as training data or generative-AI input datasets;
+- automated Unreal Editor scripts may reference already imported assets by their local Unreal object paths without sending the asset source data to an external model;
+- retain the acquisition record and Fab license information in the project documentation;
+- never redistribute standalone Fab source assets from the public Git repository if the applicable license forbids standalone redistribution.
 
-- it requires payment;
-- the license is unclear;
+## Import policy
+
+Do not move imported Fab content immediately after adding it to the project. Packs may depend on their original package paths.
+
+After every acquisition batch:
+
+1. open the project and allow shader/asset compilation to finish;
+2. run `Documentation/WorldMap/Tools/export_project_audit.py` again;
+3. replace `Documentation/WorldMap/GeneratedAudit/*` with the new results;
+4. commit the new audit;
+5. update `AssetRegistry.csv` only with exact object paths returned by Unreal;
+6. only then allow map-generation scripts to reference the new assets.
+
+## First acquisition batch
+
+Download only these first:
+
+1. `City Sample Buildings`;
+2. `City Sample Vehicles`;
+3. `Unfinished Building` if Fab still displays it as Free when you open the listing.
+
+Do **not** acquire additional packs yet. This first batch should provide enough architecture, vehicles, ruins and shared city dressing to build a serious vertical slice before we decide whether dedicated free Spring/Summer/Winter packs are still necessary.
+
+## Pack rejection rules
+
+Reject an asset when:
+
+- Fab no longer displays it as Free;
+- its license cannot be verified;
 - it requires a proprietary runtime plugin;
-- it has no UE 5.5-compatible delivery path;
-- it contains only demonstration renders instead of usable assets;
-- its style cannot be normalized with the selected environment;
-- it creates a major performance problem with no acceptable optimization path.
-
-## Current acquisition target
-
-The first target is not all four final districts. Acquire enough coherent content to complete:
-
-1. shared roads and debris;
-2. the Hub exterior;
-3. Spring suburb and school;
-4. one complete horde arena.
-
-After the Spring vertical slice is validated, freeze its art direction before downloading the remaining district packs.
+- the Unreal delivery cannot be used with UE 5.5.4;
+- it contains only renders and no usable asset source/delivery;
+- it introduces a major performance problem without an acceptable optimization path;
+- it forces replacement of the existing ZombieSeasons gameplay systems.
