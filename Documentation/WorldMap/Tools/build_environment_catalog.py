@@ -10,14 +10,15 @@ Documentation/WorldMap/GeneratedEnvironmentCatalog/
 - environment_assets.csv
 - environment_summary.json
 
-The script never edits Unreal assets. It only classifies registry metadata already
-exported by export_asset_inventory_light.py.
+The classifier is intentionally conservative and token-aware. It never loads Unreal
+assets and avoids substring mistakes such as matching "lane" inside "plane".
 """
 
 from __future__ import annotations
 
 import csv
 import json
+import re
 from collections import Counter
 from pathlib import Path
 from typing import Iterable
@@ -38,153 +39,148 @@ PACK_ROOTS = {
 
 MESH_CLASSES = {"StaticMesh", "SkeletalMesh"}
 
-CATEGORY_KEYWORDS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    (
-        "road",
-        (
-            "road",
-            "street",
-            "asphalt",
-            "lane",
-            "intersection",
-            "crosswalk",
-            "curb",
-            "kerb",
-            "sidewalk",
-            "pavement",
-        ),
-    ),
-    (
-        "wall_facade",
-        (
-            "wall",
-            "facade",
-            "façade",
-            "frontage",
-            "exterior",
-            "brick",
-            "panel",
-        ),
-    ),
-    (
-        "door_window",
-        (
-            "door",
-            "window",
-            "shutter",
-            "storefront",
-            "entrance",
-            "gate",
-        ),
-    ),
-    (
-        "roof",
-        (
-            "roof",
-            "rooftop",
-            "parapet",
-            "cornice",
-            "gutter",
-        ),
-    ),
-    (
-        "stairs_traversal",
-        (
-            "stair",
-            "step",
-            "ladder",
-            "ramp",
-            "walkway",
-            "bridge",
-            "fireescape",
-            "fire_escape",
-        ),
-    ),
-    (
-        "structural",
-        (
-            "column",
-            "pillar",
-            "beam",
-            "girder",
-            "support",
-            "foundation",
-            "floor",
-            "ceiling",
-        ),
-    ),
-    (
-        "street_prop",
-        (
-            "lamp",
-            "lightpole",
-            "light_pole",
-            "traffic",
-            "sign",
-            "hydrant",
-            "bollard",
-            "bench",
-            "mailbox",
-            "phone",
-            "parkingmeter",
-            "parking_meter",
-        ),
-    ),
-    (
-        "barrier_fence",
-        (
-            "fence",
-            "barrier",
-            "barricade",
-            "railing",
-            "guardrail",
-            "guard_rail",
-            "concreteblock",
-            "concrete_block",
-        ),
-    ),
+CATEGORY_TOKEN_RULES: tuple[tuple[str, frozenset[str]], ...] = (
     (
         "debris_rubble",
-        (
-            "debris",
-            "rubble",
-            "broken",
-            "damage",
-            "damaged",
-            "destroyed",
-            "ruin",
-            "wreck",
-            "trash",
-            "garbage",
-            "dumpster",
-            "scrap",
+        frozenset(
+            {
+                "debris",
+                "rubble",
+                "broken",
+                "damage",
+                "damaged",
+                "destroyed",
+                "wreck",
+                "trash",
+                "garbage",
+                "dumpster",
+                "scrap",
+            }
         ),
     ),
     (
         "construction",
-        (
-            "scaffold",
-            "construction",
-            "rebar",
-            "concrete",
-            "plywood",
-            "formwork",
-            "worksite",
+        frozenset(
+            {
+                "scaffold",
+                "scaffolding",
+                "construction",
+                "rebar",
+                "formwork",
+                "plywood",
+                "worksite",
+            }
         ),
     ),
     (
-        "vehicle",
-        (
-            "vehicle",
-            "car",
-            "truck",
-            "taxi",
-            "bus",
-            "van",
-            "suv",
-            "pickup",
-            "sedan",
-            "hatchback",
+        "barrier_fence",
+        frozenset(
+            {
+                "fence",
+                "barrier",
+                "barricade",
+                "railing",
+                "guardrail",
+                "guardrails",
+            }
+        ),
+    ),
+    (
+        "road",
+        frozenset(
+            {
+                "road",
+                "street",
+                "asphalt",
+                "lane",
+                "intersection",
+                "crosswalk",
+                "curb",
+                "kerb",
+                "sidewalk",
+                "pavement",
+            }
+        ),
+    ),
+    (
+        "stairs_traversal",
+        frozenset(
+            {
+                "stair",
+                "stairs",
+                "step",
+                "steps",
+                "ladder",
+                "ramp",
+                "walkway",
+                "bridge",
+                "fireescape",
+            }
+        ),
+    ),
+    (
+        "door_window",
+        frozenset(
+            {
+                "door",
+                "doors",
+                "window",
+                "windows",
+                "shutter",
+                "storefront",
+                "entrance",
+                "gate",
+            }
+        ),
+    ),
+    (
+        "roof",
+        frozenset({"roof", "rooftop", "parapet", "cornice", "gutter"}),
+    ),
+    (
+        "street_prop",
+        frozenset(
+            {
+                "lamp",
+                "lightpole",
+                "traffic",
+                "sign",
+                "hydrant",
+                "bollard",
+                "bench",
+                "mailbox",
+                "parkingmeter",
+                "manhole",
+            }
+        ),
+    ),
+    (
+        "structural",
+        frozenset(
+            {
+                "column",
+                "pillar",
+                "beam",
+                "girder",
+                "support",
+                "foundation",
+                "floor",
+                "ceiling",
+            }
+        ),
+    ),
+    (
+        "wall_facade",
+        frozenset(
+            {
+                "wall",
+                "walls",
+                "facade",
+                "frontage",
+                "exterior",
+                "brick",
+                "panel",
+            }
         ),
     ),
 )
@@ -202,15 +198,25 @@ def detect_pack(package_name: str) -> str | None:
     return None
 
 
-def infer_category(pack_name: str, searchable_text: str) -> str:
-    """Infer a conservative production category from path/name metadata."""
-    normalized = searchable_text.casefold().replace("-", "_").replace(" ", "_")
+def tokenize(value: str) -> frozenset[str]:
+    """Split paths and asset names into normalized semantic tokens.
 
+    CamelCase is split before punctuation so names such as MeshRoof become the
+    tokens "mesh" and "roof". Exact-token membership prevents accidental matches
+    such as "lane" inside "plane".
+    """
+    expanded = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", value)
+    return frozenset(re.findall(r"[a-z0-9]+", expanded.casefold()))
+
+
+def infer_category(pack_name: str, searchable_text: str) -> str:
+    """Infer one conservative production category from metadata tokens."""
     if pack_name == "CitySampleVehicles":
         return "vehicle"
 
-    for category, keywords in CATEGORY_KEYWORDS:
-        if any(keyword.casefold() in normalized for keyword in keywords):
+    tokens = tokenize(searchable_text)
+    for category, required_tokens in CATEGORY_TOKEN_RULES:
+        if tokens.intersection(required_tokens):
             return category
 
     if pack_name == "Scene_UnfinishedBuilding":
@@ -220,7 +226,7 @@ def infer_category(pack_name: str, searchable_text: str) -> str:
 
 
 def initial_approval(asset_class: str, category: str) -> str:
-    """Assign the initial review state without pretending visual approval exists."""
+    """Assign an initial review state without claiming visual approval."""
     if asset_class not in MESH_CLASSES:
         return "REFERENCE_ONLY"
 
@@ -263,8 +269,7 @@ def read_inventory(path: Path) -> list[dict[str, str]]:
         missing = required - actual
         if missing:
             raise CatalogError(
-                "Inventory is missing required columns: "
-                + ", ".join(sorted(missing))
+                "Inventory is missing required columns: " + ", ".join(sorted(missing))
             )
         return [dict(row) for row in reader]
 
@@ -326,7 +331,7 @@ def write_csv(path: Path, rows: list[dict[str, str]]) -> None:
 
 
 def write_summary(path: Path, rows: list[dict[str, str]]) -> None:
-    """Write compact counts used to review catalog quality before generation."""
+    """Write compact counts used to review classification quality."""
     pack_counts = Counter(row["pack"] for row in rows)
     class_counts = Counter(row["asset_class"] for row in rows)
     category_counts = Counter(row["category"] for row in rows)
@@ -338,6 +343,7 @@ def write_summary(path: Path, rows: list[dict[str, str]]) -> None:
 
     payload = {
         "source": str(INPUT_FILE.relative_to(WORLD_MAP_DIRECTORY)),
+        "classifier_version": 2,
         "environment_asset_count": len(rows),
         "mesh_candidate_count": len(mesh_rows),
         "pack_counts": dict(sorted(pack_counts.items())),
@@ -347,6 +353,7 @@ def write_summary(path: Path, rows: list[dict[str, str]]) -> None:
         "mesh_category_counts": dict(sorted(mesh_category_counts.items())),
         "approval_counts": dict(sorted(approval_counts.items())),
         "policy": {
+            "token_aware_classification": True,
             "candidate_is_not_visual_approval": True,
             "final_generator_requires_approved_manifest": True,
             "runtime_wildcard_asset_discovery": False,
@@ -363,9 +370,7 @@ def main() -> None:
     rows = build_rows(inventory)
 
     if not rows:
-        raise CatalogError(
-            "No installed environment-pack assets were found in the inventory."
-        )
+        raise CatalogError("No installed environment-pack assets were found in the inventory.")
 
     OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
     write_csv(OUTPUT_CSV, rows)
