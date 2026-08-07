@@ -1,0 +1,4 @@
+review_id,decision,role,asset_name,object_path,notes
+A010,APPROVED,PRIMARY_ROAD,MI_AsphaltMat_Inst9,/Game/AsphaltMat/Materials/MI_AsphaltMat_Inst9.MI_AsphaltMat_Inst9,Primary asphalt selected from visual validation gallery; neutral dark road surface suitable for decals and seasonal dressing.
+A004,RESERVE,DAMAGED_ROAD,MI_AsphaltMat_Inst3,/Game/AsphaltMat/Materials/MI_AsphaltMat_Inst3.MI_AsphaltMat_Inst3,Reserve for heavily damaged or destroyed road zones.
+A007,RESERVE,AGED_CRACKED_ROAD,MI_AsphaltMat_Inst6,/Game/AsphaltMat/Materials/MI_AsphaltMat_Inst6.MI_AsphaltMat_Inst6,Reserve for aged cracked roads parking areas and secondary streets.
