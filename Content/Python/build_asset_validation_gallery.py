@@ -252,7 +252,7 @@ def load_batch_assets(
 
 
 def add_preview_lighting(batch_id: str) -> None:
-    """Add simple neutral lighting without depending on project gameplay maps."""
+    """Add one neutral key light without creating competing directional lights."""
     folder = f"ZS_Validation/{batch_id}/Lighting"
 
     key = spawn_actor(
@@ -267,19 +267,6 @@ def add_preview_lighting(batch_id: str) -> None:
             component.set_editor_property("intensity", 5.0)
     except Exception as error:
         warn(f"Unable to configure key light intensity: {error}")
-
-    fill = spawn_actor(
-        unreal.DirectionalLight,
-        unreal.Vector(0.0, 0.0, 6000.0),
-        unreal.Rotator(-30.0, 145.0, 0.0),
-    )
-    set_actor_metadata(fill, "ZS_Validation_FillLight", folder, ["ZS_Validation"])
-    try:
-        component = fill.get_component_by_class(unreal.DirectionalLightComponent)
-        if component is not None:
-            component.set_editor_property("intensity", 2.0)
-    except Exception as error:
-        warn(f"Unable to configure fill light intensity: {error}")
 
 
 def add_ground(batch_id: str, asset_count: int, spacing: float) -> None:
