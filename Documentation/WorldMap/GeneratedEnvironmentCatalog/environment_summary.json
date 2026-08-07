@@ -33,34 +33,32 @@
     "World": 99
   },
   "category_counts": {
-    "architecture_general": 4948,
-    "construction": 32,
-    "debris_rubble": 75,
+    "architecture_general": 4971,
+    "debris_rubble": 82,
     "door_window": 750,
-    "road": 8,
-    "roof": 74,
-    "ruin_general": 143,
+    "road": 1,
+    "roof": 73,
+    "ruin_general": 185,
     "stairs_traversal": 9,
     "street_prop": 18,
     "structural": 537,
-    "vehicle": 1425,
-    "wall_facade": 4547
+    "vehicle": 1405,
+    "wall_facade": 4535
   },
+  "classifier_version": 2,
   "environment_asset_count": 12566,
   "mesh_candidate_count": 2615,
   "mesh_category_counts": {
-    "architecture_general": 1153,
-    "construction": 4,
+    "architecture_general": 1157,
     "debris_rubble": 13,
     "door_window": 129,
-    "road": 6,
     "roof": 49,
-    "ruin_general": 39,
+    "ruin_general": 53,
     "stairs_traversal": 3,
     "street_prop": 7,
     "structural": 156,
-    "vehicle": 133,
-    "wall_facade": 923
+    "vehicle": 130,
+    "wall_facade": 918
   },
   "mesh_pack_counts": {
     "CitySampleBuildings": 2390,
@@ -75,7 +73,8 @@
   "policy": {
     "candidate_is_not_visual_approval": true,
     "final_generator_requires_approved_manifest": true,
-    "runtime_wildcard_asset_discovery": false
+    "runtime_wildcard_asset_discovery": false,
+    "token_aware_classification": true
   },
   "source": "GeneratedAuditLight\\assets_light.csv"
 }

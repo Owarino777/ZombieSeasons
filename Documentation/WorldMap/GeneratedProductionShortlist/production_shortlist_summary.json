@@ -1,33 +1,31 @@
 {
   "asset_class_counts": {
     "SkeletalMesh": 12,
-    "StaticMesh": 339
+    "StaticMesh": 326
   },
   "category_counts": {
     "architecture_general": 80,
-    "construction": 4,
     "debris_rubble": 13,
     "door_window": 36,
-    "road": 6,
     "roof": 24,
     "ruin_general": 32,
     "stairs_traversal": 3,
     "street_prop": 7,
     "structural": 36,
-    "vehicle": 30,
+    "vehicle": 27,
     "wall_facade": 80
   },
   "category_quotas": {
     "architecture_general": 80,
-    "barrier_fence": 24,
+    "barrier_fence": 32,
     "construction": 16,
     "debris_rubble": 36,
     "door_window": 36,
-    "road": 12,
+    "road": 24,
     "roof": 24,
     "ruin_general": 32,
-    "stairs_traversal": 12,
-    "street_prop": 24,
+    "stairs_traversal": 16,
+    "street_prop": 32,
     "structural": 36,
     "vehicle": 40,
     "wall_facade": 80
@@ -37,9 +35,9 @@
     "vehicle_internal_component": 90
   },
   "pack_counts": {
-    "CitySampleBuildings": 249,
+    "CitySampleBuildings": 248,
     "CitySampleVehicles": 27,
-    "Scene_UnfinishedBuilding": 75
+    "Scene_UnfinishedBuilding": 63
   },
   "pack_minimums": {
     "CitySampleBuildings": 120,
@@ -54,7 +52,8 @@
     "visual_review_required_before_generator_use": true
   },
   "scored_candidate_count": 2512,
-  "shortlist_count": 351,
+  "shortlist_count": 338,
+  "shortlist_version": 2,
   "source": "GeneratedEnvironmentCatalog\\environment_assets.csv",
   "source_candidate_count": 2615
 }
