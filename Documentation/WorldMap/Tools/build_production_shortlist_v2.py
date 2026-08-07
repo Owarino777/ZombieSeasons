@@ -29,7 +29,7 @@ CATEGORY_QUOTAS: dict[str, int] = {
     "roof": 24,
     "stairs_traversal": 16,
     "structural": 36,
-    "street_prop": 32,
+    "street_prop": 48,
     "barrier_fence": 32,
     "debris_rubble": 36,
     "construction": 16,
@@ -42,6 +42,7 @@ PACK_MINIMUMS: dict[str, int] = {
     "CitySampleBuildings": 120,
     "CitySampleVehicles": 24,
     "Scene_UnfinishedBuilding": 48,
+    "Street_Props_Pack_V1": 48,
 }
 
 POSITIVE_KEYWORDS: dict[str, tuple[str, ...]] = {
@@ -51,7 +52,7 @@ POSITIVE_KEYWORDS: dict[str, tuple[str, ...]] = {
     "roof": ("roof", "rooftop", "parapet", "cornice"),
     "stairs_traversal": ("stair", "stairs", "step", "ramp", "walkway", "bridge", "fireescape"),
     "structural": ("column", "pillar", "beam", "floor", "ceiling", "support"),
-    "street_prop": ("lamp", "traffic", "sign", "hydrant", "bollard", "bench", "mailbox", "manhole"),
+    "street_prop": ("lamp", "traffic", "sign", "hydrant", "bollard", "bench", "mailbox", "manhole", "cone", "bin"),
     "barrier_fence": ("fence", "barrier", "barricade", "railing", "guardrail"),
     "debris_rubble": ("debris", "rubble", "broken", "damaged", "destroyed", "wreck", "trash", "garbage"),
     "construction": ("construction", "scaffold", "rebar", "concrete", "plywood"),
@@ -81,7 +82,7 @@ HARD_REJECT_PATTERNS = tuple(
 )
 
 # Do not penalize the word "sample": every City Sample asset contains it in its
-# package path, so that penalty was non-discriminating.
+# package path, so that penalty would not discriminate between useful assets.
 SOFT_PENALTY_KEYWORDS = ("variant", "temp", "old", "deprecated", "demo", "guide", "reference")
 
 OUTPUT_FIELDS = [
@@ -174,6 +175,12 @@ def score_row(row: dict[str, str]) -> tuple[int, list[str]]:
         score += 10
         reasons.append("preferred_city_pack")
 
+    if row["pack"] == "Street_Props_Pack_V1" and category in {
+        "street_prop", "barrier_fence", "road", "stairs_traversal", "debris_rubble"
+    }:
+        score += 18
+        reasons.append("preferred_street_props_pack")
+
     asset_name = normalize(row["asset_name"])
     if asset_name.startswith(("sm_", "s_", "mesh_")):
         score += 5
@@ -240,6 +247,8 @@ def apply_quotas(rows: list[dict[str, str]]) -> list[dict[str, str]]:
             selected.append(row)
             selected_paths.add(row["object_path"])
 
+    # Preserve a useful minimum from each purpose-built source pack. This is still
+    # only a metadata shortlist; visual approval happens later inside Unreal.
     for pack, minimum in PACK_MINIMUMS.items():
         current = sum(1 for row in selected if row["pack"] == pack)
         if current >= minimum:
@@ -267,7 +276,7 @@ def write_csv(path: Path, rows: list[dict[str, str]]) -> None:
 def write_summary(path: Path, source_count: int, scored_count: int, rows: list[dict[str, str]], rejected: Counter[str]) -> None:
     payload = {
         "source": str(INPUT_FILE.relative_to(WORLD_MAP_DIRECTORY)),
-        "shortlist_version": 2,
+        "shortlist_version": 3,
         "source_candidate_count": source_count,
         "scored_candidate_count": scored_count,
         "shortlist_count": len(rows),
