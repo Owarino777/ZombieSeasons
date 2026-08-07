@@ -15,3 +15,9 @@ Saved
 
 # Unreal Engine per-user editor settings
 Config/DefaultEditorPerProjectUserSettings.ini
+# Local third-party Unreal content
+Content/AsphaltMat/
+Content/CitySampleBuildings/
+Content/CitySampleVehicles/
+Content/Scene_UnfinishedBuilding/
+Content/Street_Props_Pack_V1/
