@@ -1,0 +1,15 @@
+asset_id,object_path,asset_type,source,status,district,notes
+MAP_FIRST_PERSON,/Game/FirstPerson/Maps/FirstPersonMap,World,Repository,VERIFIED,Shared,Original template map; never overwrite
+BP_FIRST_PERSON_CHARACTER,/Game/FirstPerson/Blueprints/BP_FirstPersonCharacter,Blueprint,Repository,VERIFIED,Shared,Playable character
+BP_FIRST_PERSON_GAMEMODE,/Game/FirstPerson/Blueprints/BP_FirstPersonGameMode,Blueprint,Repository,VERIFIED,Shared,Configured default game mode
+BP_FIRST_PERSON_PROJECTILE,/Game/FirstPerson/Blueprints/BP_FirstPersonProjectile,Blueprint,Repository,VERIFIED,Shared,Projectile Blueprint
+BP_PICKUP_RIFLE,/Game/FirstPerson/Blueprints/BP_Pickup_Rifle,Blueprint,Repository,VERIFIED,Shared,Rifle pickup
+BP_WEAPON_COMPONENT,/Game/FirstPerson/Blueprints/BP_Weapon_Component,Blueprint,Repository,VERIFIED,Shared,Weapon component
+AIC_ZOMBIE,/Game/FirstPerson/Blueprints/AIC_Zombie,Blueprint,Repository,VERIFIED,Shared,Zombie AI controller; graph contract requires local audit
+BP_ZOMBIE,/Game/FirstPerson/Blueprints/Enemies/BP_Zombie,Blueprint,Repository,VERIFIED,Shared,Zombie actor; graph contract requires local audit
+SM_GREYBOX_CUBE,/Game/LevelPrototyping/Meshes/SM_Cube,StaticMesh,Repository,VERIFIED,Shared,Primary greybox module
+SM_GREYBOX_CHAMFER_CUBE,/Game/LevelPrototyping/Meshes/SM_ChamferCube,StaticMesh,Repository,VERIFIED,Shared,Greybox obstacle module
+SM_GREYBOX_RAMP,/Game/LevelPrototyping/Meshes/SM_Ramp,StaticMesh,Repository,VERIFIED,Shared,Greybox ramp
+SM_GREYBOX_CYLINDER,/Game/LevelPrototyping/Meshes/SM_Cylinder,StaticMesh,Repository,VERIFIED,Shared,Greybox cylindrical volume
+MI_GREYBOX_GRAY,/Game/LevelPrototyping/Materials/MI_PrototypeGrid_Gray,MaterialInstance,Repository,VERIFIED,Shared,Default greybox material
+MI_GREYBOX_DARK,/Game/LevelPrototyping/Materials/MI_PrototypeGrid_TopDark,MaterialInstance,Repository,VERIFIED,Shared,Dark greybox material
