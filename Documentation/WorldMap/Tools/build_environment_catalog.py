@@ -10,8 +10,8 @@ Documentation/WorldMap/GeneratedEnvironmentCatalog/
 - environment_assets.csv
 - environment_summary.json
 
-The classifier is intentionally conservative and token-aware. It never loads Unreal
-assets and avoids substring mistakes such as matching "lane" inside "plane".
+The classifier is conservative and token-aware. It never loads Unreal assets and
+avoids substring mistakes such as matching "lane" inside "plane".
 """
 
 from __future__ import annotations
@@ -35,9 +35,12 @@ PACK_ROOTS = {
     "/Game/CitySampleBuildings": "CitySampleBuildings",
     "/Game/CitySampleVehicles": "CitySampleVehicles",
     "/Game/Scene_UnfinishedBuilding": "Scene_UnfinishedBuilding",
+    "/Game/Street_Props_Pack_V1": "Street_Props_Pack_V1",
+    "/Game/AsphaltMat": "AsphaltMat",
 }
 
 MESH_CLASSES = {"StaticMesh", "SkeletalMesh"}
+ROAD_SURFACE_MATERIAL_CLASSES = {"Material", "MaterialInstanceConstant"}
 
 CATEGORY_TOKEN_RULES: tuple[tuple[str, frozenset[str]], ...] = (
     (
@@ -77,9 +80,13 @@ CATEGORY_TOKEN_RULES: tuple[tuple[str, frozenset[str]], ...] = (
         frozenset(
             {
                 "fence",
+                "fences",
                 "barrier",
+                "barriers",
                 "barricade",
+                "barricades",
                 "railing",
+                "railings",
                 "guardrail",
                 "guardrails",
             }
@@ -90,6 +97,7 @@ CATEGORY_TOKEN_RULES: tuple[tuple[str, frozenset[str]], ...] = (
         frozenset(
             {
                 "road",
+                "roads",
                 "street",
                 "asphalt",
                 "lane",
@@ -145,12 +153,17 @@ CATEGORY_TOKEN_RULES: tuple[tuple[str, frozenset[str]], ...] = (
                 "lightpole",
                 "traffic",
                 "sign",
+                "signs",
                 "hydrant",
                 "bollard",
                 "bench",
                 "mailbox",
                 "parkingmeter",
                 "manhole",
+                "cone",
+                "cones",
+                "bin",
+                "bins",
             }
         ),
     ),
@@ -185,36 +198,97 @@ CATEGORY_TOKEN_RULES: tuple[tuple[str, frozenset[str]], ...] = (
     ),
 )
 
+STREET_PROPS_BARRIER_TOKENS = frozenset(
+    {
+        "fence",
+        "fences",
+        "barrier",
+        "barriers",
+        "barricade",
+        "barricades",
+        "railing",
+        "railings",
+        "guardrail",
+        "guardrails",
+    }
+)
+
+STREET_PROPS_ROAD_TOKENS = frozenset(
+    {
+        "road",
+        "roads",
+        "asphalt",
+        "lane",
+        "intersection",
+        "crosswalk",
+        "curb",
+        "kerb",
+        "sidewalk",
+        "pavement",
+    }
+)
+
+STREET_PROPS_TRAVERSAL_TOKENS = frozenset(
+    {"stair", "stairs", "step", "steps", "ladder", "ramp", "walkway", "bridge"}
+)
+
+STREET_PROPS_DEBRIS_TOKENS = frozenset(
+    {"debris", "rubble", "broken", "damaged", "wreck", "trash", "garbage", "scrap"}
+)
+
 
 class CatalogError(RuntimeError):
     """Raised when catalog generation cannot continue safely."""
 
 
-def detect_pack(package_name: str) -> str | None:
-    """Return the verified source pack for one package path."""
+def detect_pack(package_name: str) -> tuple[str, str] | None:
+    """Return (pack_name, pack_root) for one verified package path."""
     for root, pack_name in PACK_ROOTS.items():
         if package_name == root or package_name.startswith(f"{root}/"):
-            return pack_name
+            return pack_name, root
     return None
 
 
 def tokenize(value: str) -> frozenset[str]:
-    """Split paths and asset names into normalized semantic tokens.
-
-    CamelCase is split before punctuation so names such as MeshRoof become the
-    tokens "mesh" and "roof". Exact-token membership prevents accidental matches
-    such as "lane" inside "plane".
-    """
+    """Split paths and asset names into normalized semantic tokens."""
     expanded = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", value)
     return frozenset(re.findall(r"[a-z0-9]+", expanded.casefold()))
 
 
-def infer_category(pack_name: str, searchable_text: str) -> str:
+def semantic_text(asset_name: str, package_name: str, pack_root: str) -> str:
+    """Build classification text without letting the pack root bias categories."""
+    relative_package = package_name[len(pack_root) :].lstrip("/")
+    return f"{asset_name} {relative_package}"
+
+
+def infer_category(
+    pack_name: str,
+    asset_name: str,
+    package_name: str,
+    pack_root: str,
+) -> str:
     """Infer one conservative production category from metadata tokens."""
     if pack_name == "CitySampleVehicles":
         return "vehicle"
 
-    tokens = tokenize(searchable_text)
+    if pack_name == "AsphaltMat":
+        return "road_surface_material"
+
+    tokens = tokenize(semantic_text(asset_name, package_name, pack_root))
+
+    # Street Props is a purpose-built dressing pack. Do not classify every asset
+    # as a road merely because the pack name contains the word "Street".
+    if pack_name == "Street_Props_Pack_V1":
+        if tokens.intersection(STREET_PROPS_BARRIER_TOKENS):
+            return "barrier_fence"
+        if tokens.intersection(STREET_PROPS_ROAD_TOKENS):
+            return "road"
+        if tokens.intersection(STREET_PROPS_TRAVERSAL_TOKENS):
+            return "stairs_traversal"
+        if tokens.intersection(STREET_PROPS_DEBRIS_TOKENS):
+            return "debris_rubble"
+        return "street_prop"
+
     for category, required_tokens in CATEGORY_TOKEN_RULES:
         if tokens.intersection(required_tokens):
             return category
@@ -227,6 +301,12 @@ def infer_category(pack_name: str, searchable_text: str) -> str:
 
 def initial_approval(asset_class: str, category: str) -> str:
     """Assign an initial review state without claiming visual approval."""
+    if (
+        category == "road_surface_material"
+        and asset_class in ROAD_SURFACE_MATERIAL_CLASSES
+    ):
+        return "MATERIAL_CANDIDATE"
+
     if asset_class not in MESH_CLASSES:
         return "REFERENCE_ONLY"
 
@@ -280,12 +360,17 @@ def build_rows(inventory: Iterable[dict[str, str]]) -> list[dict[str, str]]:
 
     for row in inventory:
         package_name = row["package_name"]
-        pack_name = detect_pack(package_name)
-        if pack_name is None:
+        detected = detect_pack(package_name)
+        if detected is None:
             continue
 
-        searchable_text = f"{row['asset_name']} {package_name}"
-        category = infer_category(pack_name, searchable_text)
+        pack_name, pack_root = detected
+        category = infer_category(
+            pack_name,
+            row["asset_name"],
+            package_name,
+            pack_root,
+        )
         approval = initial_approval(row["asset_class"], category)
 
         output.append(
@@ -338,14 +423,18 @@ def write_summary(path: Path, rows: list[dict[str, str]]) -> None:
     approval_counts = Counter(row["approval"] for row in rows)
 
     mesh_rows = [row for row in rows if row["asset_class"] in MESH_CLASSES]
+    material_candidates = [
+        row for row in rows if row["approval"] == "MATERIAL_CANDIDATE"
+    ]
     mesh_pack_counts = Counter(row["pack"] for row in mesh_rows)
     mesh_category_counts = Counter(row["category"] for row in mesh_rows)
 
     payload = {
         "source": str(INPUT_FILE.relative_to(WORLD_MAP_DIRECTORY)),
-        "classifier_version": 2,
+        "classifier_version": 3,
         "environment_asset_count": len(rows),
         "mesh_candidate_count": len(mesh_rows),
+        "material_candidate_count": len(material_candidates),
         "pack_counts": dict(sorted(pack_counts.items())),
         "mesh_pack_counts": dict(sorted(mesh_pack_counts.items())),
         "asset_class_counts": dict(sorted(class_counts.items())),
@@ -354,7 +443,9 @@ def write_summary(path: Path, rows: list[dict[str, str]]) -> None:
         "approval_counts": dict(sorted(approval_counts.items())),
         "policy": {
             "token_aware_classification": True,
+            "pack_root_removed_from_semantic_tokens": True,
             "candidate_is_not_visual_approval": True,
+            "material_candidate_is_not_visual_approval": True,
             "final_generator_requires_approved_manifest": True,
             "runtime_wildcard_asset_discovery": False,
         },
@@ -370,15 +461,21 @@ def main() -> None:
     rows = build_rows(inventory)
 
     if not rows:
-        raise CatalogError("No installed environment-pack assets were found in the inventory.")
+        raise CatalogError(
+            "No installed environment-pack assets were found in the inventory."
+        )
 
     OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
     write_csv(OUTPUT_CSV, rows)
     write_summary(OUTPUT_JSON, rows)
 
     mesh_count = sum(1 for row in rows if row["asset_class"] in MESH_CLASSES)
+    material_count = sum(
+        1 for row in rows if row["approval"] == "MATERIAL_CANDIDATE"
+    )
     print(f"Environment assets cataloged: {len(rows)}")
     print(f"Mesh candidates: {mesh_count}")
+    print(f"Material candidates: {material_count}")
     print(f"CSV: {OUTPUT_CSV}")
     print(f"Summary: {OUTPUT_JSON}")
 
