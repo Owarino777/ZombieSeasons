@@ -1,0 +1,81 @@
+{
+  "approval_counts": {
+    "CANDIDATE": 2615,
+    "REFERENCE_ONLY": 9951
+  },
+  "asset_class_counts": {
+    "AnimBlueprint": 3,
+    "Blueprint": 127,
+    "ControlRigBlueprint": 1,
+    "CurveFloat": 27,
+    "DataTable": 1,
+    "InputAction": 6,
+    "InputMappingContext": 2,
+    "Material": 72,
+    "MaterialFunction": 80,
+    "MaterialFunctionMaterialLayer": 4,
+    "MaterialFunctionMaterialLayerBlend": 10,
+    "MaterialFunctionMaterialLayerInstance": 82,
+    "MaterialInstanceConstant": 6447,
+    "MaterialParameterCollection": 3,
+    "ObjectRedirector": 12,
+    "PhysicalMaterial": 2,
+    "PhysicsAsset": 12,
+    "SkeletalMesh": 12,
+    "Skeleton": 3,
+    "StaticMesh": 2603,
+    "Texture2D": 2851,
+    "Texture2DArray": 16,
+    "TextureCube": 77,
+    "TextureCubeArray": 8,
+    "UserDefinedEnum": 3,
+    "UserDefinedStruct": 3,
+    "World": 99
+  },
+  "category_counts": {
+    "architecture_general": 4948,
+    "construction": 32,
+    "debris_rubble": 75,
+    "door_window": 750,
+    "road": 8,
+    "roof": 74,
+    "ruin_general": 143,
+    "stairs_traversal": 9,
+    "street_prop": 18,
+    "structural": 537,
+    "vehicle": 1425,
+    "wall_facade": 4547
+  },
+  "environment_asset_count": 12566,
+  "mesh_candidate_count": 2615,
+  "mesh_category_counts": {
+    "architecture_general": 1153,
+    "construction": 4,
+    "debris_rubble": 13,
+    "door_window": 129,
+    "road": 6,
+    "roof": 49,
+    "ruin_general": 39,
+    "stairs_traversal": 3,
+    "street_prop": 7,
+    "structural": 156,
+    "vehicle": 133,
+    "wall_facade": 923
+  },
+  "mesh_pack_counts": {
+    "CitySampleBuildings": 2390,
+    "CitySampleVehicles": 130,
+    "Scene_UnfinishedBuilding": 95
+  },
+  "pack_counts": {
+    "CitySampleBuildings": 10779,
+    "CitySampleVehicles": 1405,
+    "Scene_UnfinishedBuilding": 382
+  },
+  "policy": {
+    "candidate_is_not_visual_approval": true,
+    "final_generator_requires_approved_manifest": true,
+    "runtime_wildcard_asset_discovery": false
+  },
+  "source": "GeneratedAuditLight\\assets_light.csv"
+}
