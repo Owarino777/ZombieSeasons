@@ -1,8 +1,8 @@
 """Build the deterministic ZombieSeasons visual asset review plan.
 
 This script runs with standard Python and never imports Unreal Engine modules.
-It converts the production shortlist and Asphalt material variants into small,
-ordered review batches consumed by the Unreal validation-gallery script.
+It converts the production shortlist and Asphalt material variants into ordered
+review batches consumed by the Unreal validation-gallery script.
 
 Inputs:
 - Documentation/WorldMap/GeneratedProductionShortlist/production_shortlist.csv
@@ -41,10 +41,14 @@ OUTPUT_CSV = OUTPUT_DIRECTORY / "asset_review.csv"
 OUTPUT_BATCHES = OUTPUT_DIRECTORY / "batches.json"
 OUTPUT_SUMMARY = OUTPUT_DIRECTORY / "summary.json"
 
-# Smaller batches make visual inspection practical in-editor and reduce memory
-# pressure when City Sample assets are loaded. The asphalt material comparison is
-# still kept as one 10-item batch because it is intentionally compared side by side.
-BATCH_SIZE = 16
+# Keep complete categories together whenever practical so visual comparison is
+# immediate. Only the two 80-item City Sample categories are split to limit memory
+# pressure and viewport clutter.
+DEFAULT_MESH_BATCH_SIZE = 48
+CATEGORY_BATCH_SIZES = {
+    "wall_facade": 40,
+    "architecture_general": 40,
+}
 ASPHALT_PREVIEW_CLASS = "MaterialInstanceConstant"
 
 CATEGORY_ORDER = (
@@ -189,7 +193,7 @@ def build_review_rows() -> list[dict[str, str]]:
 
 
 def build_batches(rows: list[dict[str, str]]) -> list[dict[str, object]]:
-    """Split review rows into small ordered batches safe for Unreal inspection."""
+    """Build ordered category batches with comparison-friendly sizes."""
     grouped: dict[tuple[str, str], list[dict[str, str]]] = defaultdict(list)
     for row in rows:
         grouped[(row["kind"], row["category"])].append(row)
@@ -203,7 +207,14 @@ def build_batches(rows: list[dict[str, str]]) -> list[dict[str, object]]:
             if not group:
                 continue
 
-            chunk_size = len(group) if kind == "MATERIAL" else BATCH_SIZE
+            if kind == "MATERIAL":
+                chunk_size = len(group)
+            else:
+                chunk_size = CATEGORY_BATCH_SIZES.get(
+                    category,
+                    DEFAULT_MESH_BATCH_SIZE,
+                )
+
             chunks = [
                 group[start : start + chunk_size]
                 for start in range(0, len(group), chunk_size)
@@ -262,7 +273,8 @@ def main() -> None:
         OUTPUT_BATCHES,
         {
             "gallery_root": "/Game/ZombieSeasons/Validation/AssetGallery",
-            "batch_size": BATCH_SIZE,
+            "default_mesh_batch_size": DEFAULT_MESH_BATCH_SIZE,
+            "category_batch_sizes": CATEGORY_BATCH_SIZES,
             "batches": batches,
         },
     )
@@ -278,12 +290,15 @@ def main() -> None:
             "kind_counts": dict(sorted(kind_counts.items())),
             "category_counts": dict(sorted(category_counts.items())),
             "pack_counts": dict(sorted(pack_counts.items())),
+            "default_mesh_batch_size": DEFAULT_MESH_BATCH_SIZE,
+            "category_batch_sizes": CATEGORY_BATCH_SIZES,
             "policy": {
                 "initial_state_is_pending": True,
                 "approval_requires_visual_review": True,
                 "generator_must_not_use_pending_assets": True,
                 "generator_must_not_use_rejected_assets": True,
                 "batch_maps_are_non_destructive": True,
+                "keep_category_together_when_practical": True,
             },
         },
     )
