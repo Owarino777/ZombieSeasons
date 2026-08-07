@@ -1,0 +1,36 @@
+{
+  "batch_count": 23,
+  "category_counts": {
+    "architecture_general": 80,
+    "barrier_fence": 22,
+    "debris_rubble": 15,
+    "door_window": 36,
+    "road_material": 10,
+    "roof": 24,
+    "ruin_general": 32,
+    "stairs_traversal": 3,
+    "street_prop": 34,
+    "structural": 36,
+    "vehicle": 27,
+    "wall_facade": 80
+  },
+  "kind_counts": {
+    "MATERIAL": 10,
+    "MESH": 389
+  },
+  "pack_counts": {
+    "AsphaltMat": 10,
+    "CitySampleBuildings": 248,
+    "CitySampleVehicles": 27,
+    "Scene_UnfinishedBuilding": 63,
+    "Street_Props_Pack_V1": 51
+  },
+  "policy": {
+    "approval_requires_visual_review": true,
+    "batch_maps_are_non_destructive": true,
+    "generator_must_not_use_pending_assets": true,
+    "generator_must_not_use_rejected_assets": true,
+    "initial_state_is_pending": true
+  },
+  "review_asset_count": 399
+}
