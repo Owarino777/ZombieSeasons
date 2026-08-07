@@ -1,13 +1,21 @@
 system,source_blueprint,required_contract,status,verification_method,notes
-Zombie actor,/Game/FirstPerson/Blueprints/Enemies/BP_Zombie,Spawnable actor class,UNVERIFIED,Local Unreal audit,Confirm parent class and exposed initialization
-Zombie controller,/Game/FirstPerson/Blueprints/AIC_Zombie,Possession and AI startup,UNVERIFIED,Local Unreal audit,Confirm Behavior Tree and Blackboard references
-Damage,/Game/FirstPerson/Blueprints/BP_FirstPersonProjectile,Damage delivery contract,UNVERIFIED,Local Unreal audit,Confirm Apply Damage or interface usage
-Player,/Game/FirstPerson/Blueprints/BP_FirstPersonCharacter,Health death inventory interaction,UNVERIFIED,Local Unreal audit,Confirm implemented systems
-Weapon,/Game/FirstPerson/Blueprints/BP_Weapon_Component,Fire ammo reload contract,UNVERIFIED,Local Unreal audit,Confirm whether tutorial-only or production ready
-Loot,/Game/FirstPerson/Blueprints/BP_Pickup_Rifle,Pickup interaction contract,UNVERIFIED,Local Unreal audit,Confirm extensibility for generic loot
-Game mode,/Game/FirstPerson/Blueprints/BP_FirstPersonGameMode,Player class and gameplay startup,PARTIALLY_VERIFIED,Config plus local audit,Configured as global default
-Wave manager,TBD,Start stop remaining enemies complete event,MISSING,Project inspection,Create project-owned adapter if absent
-Objective manager,TBD,Activate update complete fail events,MISSING,Project inspection,Create project-owned system if absent
-Save game,TBD,District objective shortcut persistence,MISSING,Project inspection,Required before final progression implementation
-Safe zone,TBD,Prevent routine spawning and navigation,MISSING,Project inspection,Create BP_ZS_SafeZoneVolume
-Extraction,TBD,Multi-stage finale state machine,MISSING,Project inspection,Create BP_ZS_ExtractionController
+Player FPS,/Game/TopDownShooter/Core/BP_FPSCharacter,Movement camera health damage weapon HUD integration,PARTIALLY_VERIFIED,Generated dependency audit,Depends on BPI_Damageable BPI_GameMode_MP BP_Gun BP_GameMode ABP_Hero EnhancedInput and UMG
+Player base,/Game/TopDownShooter/Core/BP_Character,Shared character behavior,PARTIALLY_VERIFIED,Generated dependency audit,Used by BP_FPSCharacter BP_Hero and BP_Enemy dependency graph
+Enemy actor,/Game/TopDownShooter/Core/BP_Enemy,Spawnable damageable navigable enemy actor,PARTIALLY_VERIFIED,Generated dependency audit,Depends on AIC_Enemy ABP_Enemy BPI_Damageable BPI_GameMode_MP and NavigationSystem
+Enemy controller,/Game/TopDownShooter/Core/AIC_Enemy,AI possession and movement startup,PARTIALLY_VERIFIED,Generated dependency audit,Exact graph internals require targeted Blueprint introspection before gameplay changes
+Enemy spawner,/Game/TopDownShooter/Core/BP_EnemySpawner,Spawn enemy and communicate wave state,PARTIALLY_VERIFIED,Generated dependency audit,Depends on BP_Enemy BPI_GameMode_MP AIModule and NavigationSystem; reuse rather than replace
+Damage interface,/Game/TopDownShooter/Core/BPI_Damageable,Damage contract between projectile player and enemies,VERIFIED_PRESENT,Generated dependency audit,Implemented as project Blueprint interface and referenced by enemy/player assets
+GameMode interface,/Game/TopDownShooter/Core/BPI_GameMode_MP,Enemy/spawner/GameMode communication contract,VERIFIED_PRESENT,Generated dependency audit,Referenced by BP_Enemy BP_EnemySpawner BP_FPSCharacter BP_GameMode and BP_FPSGameMode
+FPS GameMode,/Game/TopDownShooter/Core/BP_FPSGameMode,FPS startup HUD player and spawn management,PARTIALLY_VERIFIED,Generated dependency audit,Referenced by AI_TestMap and Black Tide maps; depends on BP_EnemySpawner BP_FPSCharacter BP_Hero WBP_InGameHUD and BPI_GameMode_MP
+GameMode,/Game/TopDownShooter/Core/BP_GameMode,Default project gameplay state and UI updates,PARTIALLY_VERIFIED,Config plus generated dependency audit,Configured as global default; known UpdateUI_PlayerHealth compiler warning must be resolved before final release
+HUD,/Game/TopDownShooter/Core/WBP_InGameHUD,In-game health wave and gameplay display,PARTIALLY_VERIFIED,Generated dependency audit,Used by both game modes; exact widget variables require targeted introspection only if generator must write them
+Weapon,/Game/TopDownShooter/Core/Weapon/BP_Gun,Fire weapon integration,PARTIALLY_VERIFIED,Generated dependency audit,Referenced by BP_FPSCharacter and BP_Hero
+Projectile,/Game/TopDownShooter/Core/Weapon/BP_Projectile,Projectile and damage delivery,PARTIALLY_VERIFIED,Generated dependency audit,Keep project-owned damage behavior unchanged during level generation
+Enemy animation,/Game/TopDownShooter/Core/Animation/ABP_Enemy,Enemy locomotion/death presentation,VERIFIED_PRESENT,Generated dependency audit,Depends on BS_Enemy_Walk and enemy animation assets
+Player animation,/Game/TopDownShooter/Core/Animation/ABP_Hero,Player locomotion/death presentation,VERIFIED_PRESENT,Generated dependency audit,Referenced by BP_FPSCharacter and BP_Hero
+Wave manager,/Game/TopDownShooter/Core/BP_GameMode + /Game/TopDownShooter/Core/BP_EnemySpawner,Start stop remaining enemies complete wave state,PARTIALLY_VERIFIED,Generated dependency audit,Do not create replacement until targeted graph audit proves a missing contract
+Objective manager,TBD,District objective progression and extraction state,MISSING,Project inspection,Create project-owned system only after greybox gameplay flow is frozen
+Loot manager,TBD,Reusable pickups ammo health and district rewards,UNVERIFIED,Project inspection,No dedicated generic loot Blueprint was identified in current 24-Blueprint audit
+Save game,TBD,District objective shortcut and session persistence,MISSING,Project inspection,Not required for first greybox; required before long-form final progression
+Safe zone,TBD,Prevent routine spawning in hub and control threat transitions,MISSING,Project inspection,Create BP_ZS_SafeZoneVolume if existing GameMode has no equivalent
+Extraction,TBD,Final multi-stage escape state,Missing,Project inspection,Create project-owned controller after objective system design is frozen
