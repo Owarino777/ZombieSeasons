@@ -14,6 +14,10 @@ Build/
 *.xcodeproj
 *.xcworkspace
 
+# Python editor-script caches
+__pycache__/
+*.py[cod]
+
 # Unreal Engine per-user editor settings
 Config/DefaultEditorPerProjectUserSettings.ini
 
