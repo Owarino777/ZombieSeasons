@@ -5,9 +5,14 @@ Run from Unreal Editor only after 00_validate_environment.py passes:
 py "C:/Users/malik/Documents/Unreal Projects/ZombieSeasons/Content/Python/ZombieSeasons/MapGeneration/01_create_world_shell.py"
 
 The script creates /Game/ZombieSeasons/Maps/Development/L_ZS_World_Greybox
-as a blank World Partition level, creates the required Data Layers, lays out the
-frozen world/district bounds and elevation baselines, and adds editor-only road
-graph placeholders. It never touches the historical reference maps.
+as a blank World Partition level, lays out the frozen world/district bounds and
+elevation baselines, and adds editor-only road graph placeholders.
+
+World Partition Data Layers are created when DataLayerEditorSubsystem is available.
+Some UE 5.5 editor builds expose the Python class while returning no subsystem
+instance. In that case Stage 1 continues safely using normal Editor Layers plus the
+project generation tags/folders, records Data Layers as deferred, and leaves their
+creation as a later editor compatibility task. This does not change world topology.
 """
 
 from __future__ import annotations
@@ -65,7 +70,6 @@ DATA_LAYER_NAMES = (
     "DL_ZS_Extraction",
 )
 
-# Frozen bounds from 07_Production_World_Specification.md.
 DISTRICT_BOUNDS: dict[str, tuple[float, float, float, float, float]] = {
     "Hub": (-15000.0, 15000.0, -15000.0, 15000.0, 0.0),
     "Spring": (-85000.0, -15000.0, 15000.0, 85000.0, 200.0),
@@ -85,10 +89,9 @@ DISTRICT_DATA_LAYERS = {
     "Shared": None,
 }
 
-# Stage-1 road topology placeholders only. Actual road surfaces are created by
-# district stages after topology and traversal are validated.
-ROAD_SEGMENTS: tuple[tuple[str, str, tuple[float, float], tuple[float, float], float], ...] = (
-    # Rounded-square Hub ring.
+ROAD_SEGMENTS: tuple[
+    tuple[str, str, tuple[float, float], tuple[float, float], float], ...
+] = (
     ("R_HUB_N", "Hub", (-7000.0, 10000.0), (7000.0, 10000.0), 1200.0),
     ("R_HUB_NE", "Hub", (7000.0, 10000.0), (10000.0, 7000.0), 1200.0),
     ("R_HUB_E", "Hub", (10000.0, 7000.0), (10000.0, -7000.0), 1200.0),
@@ -97,12 +100,10 @@ ROAD_SEGMENTS: tuple[tuple[str, str, tuple[float, float], tuple[float, float], f
     ("R_HUB_SW", "Hub", (-7000.0, -10000.0), (-10000.0, -7000.0), 1200.0),
     ("R_HUB_W", "Hub", (-10000.0, -7000.0), (-10000.0, 7000.0), 1200.0),
     ("R_HUB_NW", "Hub", (-10000.0, 7000.0), (-7000.0, 10000.0), 1200.0),
-    # Radial arterials.
     ("R_SPRING", "Spring", (-8000.0, 8000.0), (-45000.0, 45000.0), 1200.0),
     ("R_SUMMER", "Summer", (8000.0, 8000.0), (45000.0, 45000.0), 1200.0),
     ("R_AUTUMN", "Autumn", (-8000.0, -8000.0), (-45000.0, -45000.0), 1200.0),
     ("R_WINTER", "Winter", (8000.0, -8000.0), (45000.0, -45000.0), 1200.0),
-    # Cross-city continuity.
     ("R_NORTH_CROSS", "Shared", (-60000.0, 60000.0), (60000.0, 60000.0), 700.0),
     ("R_SOUTH_CROSS", "Shared", (-60000.0, -60000.0), (60000.0, -60000.0), 700.0),
     ("R_WEST_SERVICE", "Shared", (-60000.0, 60000.0), (-60000.0, -60000.0), 500.0),
@@ -149,6 +150,30 @@ def check_dirty_maps() -> None:
         )
 
 
+def get_data_layer_editor_subsystem() -> Any | None:
+    """Return the editor Data Layer subsystem when this UE build instantiates it."""
+    subsystem_class = getattr(unreal, "DataLayerEditorSubsystem", None)
+    if subsystem_class is None:
+        return None
+    try:
+        subsystem = unreal.get_editor_subsystem(subsystem_class)
+    except Exception as error:
+        warn(f"Unable to query DataLayerEditorSubsystem: {error}")
+        return None
+    if subsystem is None:
+        return None
+
+    required_methods = (
+        "create_data_layer",
+        "rename_data_layer",
+        "add_actor_to_data_layer",
+        "get_data_layer_from_label",
+    )
+    if any(not hasattr(subsystem, name) for name in required_methods):
+        return None
+    return subsystem
+
+
 def preflight() -> None:
     if MODE != "CREATE":
         fail(f"Unsupported Stage-1 mode: {MODE}. This first pass supports CREATE only.")
@@ -164,7 +189,6 @@ def preflight() -> None:
         "EditorActorSubsystem",
         "UnrealEditorSubsystem",
         "StaticMeshActor",
-        "DataLayerEditorSubsystem",
     )
     missing = [name for name in required_symbols if not hasattr(unreal, name)]
     if missing:
@@ -174,17 +198,12 @@ def preflight() -> None:
     if not hasattr(level_subsystem, "new_level"):
         fail("LevelEditorSubsystem.new_level is unavailable.")
 
-    data_layer_subsystem = unreal.get_editor_subsystem(unreal.DataLayerEditorSubsystem)
-    if data_layer_subsystem is None:
-        fail("DataLayerEditorSubsystem is unavailable.")
-    for method_name in (
-        "create_data_layer",
-        "rename_data_layer",
-        "add_actor_to_data_layer",
-        "get_data_layer_from_label",
-    ):
-        if not hasattr(data_layer_subsystem, method_name):
-            fail(f"DataLayerEditorSubsystem.{method_name} is unavailable in this editor build.")
+    if get_data_layer_editor_subsystem() is None:
+        warn(
+            "DataLayerEditorSubsystem is not instantiated in this editor session. "
+            "Stage 1 will retry after creating the World Partition map and, if still "
+            "unavailable, use normal Editor Layers + ZS generation tags as a safe fallback."
+        )
 
     if unreal.load_asset(ENGINE_CUBE) is None:
         fail(f"Required engine primitive is unavailable: {ENGINE_CUBE}")
@@ -245,16 +264,34 @@ def create_partitioned_level() -> None:
         fail(f"Unable to create partitioned greybox map: {GREYBOX_MAP}")
 
 
-def configure_world_partition() -> tuple[bool, bool]:
-    """Enable streaming and best-effort configure the documented runtime grid."""
-    world = get_editor_world()
-    world_settings = world.get_world_settings()
-    if world_settings is None:
-        fail("Current world has no WorldSettings actor.")
+def resolve_world_partition(world: Any) -> Any | None:
+    """Resolve World Partition across the UE 5.5 Python reflection variants."""
+    for owner in (world, world.get_world_settings()):
+        if owner is None:
+            continue
+        try:
+            partition = owner.get_editor_property("world_partition")
+            if partition is not None:
+                return partition
+        except Exception:
+            pass
+        method = getattr(owner, "get_world_partition", None)
+        if method is not None:
+            try:
+                partition = method()
+                if partition is not None:
+                    return partition
+            except Exception:
+                pass
+    return None
 
-    partition = world_settings.get_editor_property("world_partition")
+
+def configure_world_partition() -> tuple[bool, bool]:
+    """Verify World Partition and best-effort configure streaming/runtime grid."""
+    world = get_editor_world()
+    partition = resolve_world_partition(world)
     if partition is None:
-        fail("New map was not created with World Partition enabled.")
+        fail("New map was not created with a resolvable World Partition instance.")
 
     streaming_configured = False
     try:
@@ -288,8 +325,6 @@ def configure_world_partition() -> tuple[bool, bool]:
         runtime_hash.set_editor_property("grids", grids)
         grid_configured = True
     except Exception as error:
-        # UE 5.5 exposes World Partition creation reliably, but some runtime-hash
-        # internals are not consistently reflected to Python across builds.
         warn(
             "World Partition runtime-grid values could not be persisted through the "
             f"current Python reflection API: {error}. Target remains cell=12800 cm, "
@@ -299,10 +334,16 @@ def configure_world_partition() -> tuple[bool, bool]:
     return streaming_configured, grid_configured
 
 
-def create_data_layers() -> dict[str, Any]:
-    subsystem = unreal.get_editor_subsystem(unreal.DataLayerEditorSubsystem)
+def create_data_layers() -> tuple[dict[str, Any], bool]:
+    """Create World Partition Data Layers or return a safe deferred fallback."""
+    subsystem = get_data_layer_editor_subsystem()
     if subsystem is None:
-        fail("DataLayerEditorSubsystem unavailable after level creation.")
+        warn(
+            "DataLayerEditorSubsystem remains unavailable after World Partition level creation. "
+            "World Partition Data Layers are deferred; generated actors will use normal Editor "
+            "Layers, folders and ZS tags so Stage 1 remains deterministic and auditable."
+        )
+        return {}, False
 
     created: dict[str, Any] = {}
     for name in DATA_LAYER_NAMES:
@@ -316,7 +357,6 @@ def create_data_layers() -> dict[str, Any]:
         if not subsystem.rename_data_layer(data_layer, unreal.Name(name)):
             fail(f"Unable to rename Data Layer to: {name}")
 
-        # These layers are intended to remain available in packaged greybox tests.
         runtime_type = getattr(getattr(unreal, "DataLayerType", None), "RUNTIME", None)
         if runtime_type is not None:
             try:
@@ -333,18 +373,30 @@ def create_data_layers() -> dict[str, Any]:
             warn(f"Unable to set initial state for {name}: {error}")
         created[name] = data_layer
 
-    return created
+    return created, True
 
 
-def add_actor_to_layers(actor: Any, layer_names: tuple[str, ...], layers: dict[str, Any]) -> None:
-    subsystem = unreal.get_editor_subsystem(unreal.DataLayerEditorSubsystem)
-    if subsystem is None:
-        fail("DataLayerEditorSubsystem unavailable while assigning actors.")
-    for name in layer_names:
-        layer = layers.get(name)
-        if layer is None:
-            fail(f"Unknown Data Layer assignment requested: {name}")
-        subsystem.add_actor_to_data_layer(actor, layer)
+def add_actor_to_layers(
+    actor: Any,
+    layer_names: tuple[str, ...],
+    layers: dict[str, Any],
+) -> None:
+    """Assign WP Data Layers when available; otherwise use normal Editor Layers."""
+    if layers:
+        subsystem = get_data_layer_editor_subsystem()
+        if subsystem is None:
+            fail("DataLayerEditorSubsystem disappeared while assigning generated actors.")
+        for name in layer_names:
+            layer = layers.get(name)
+            if layer is None:
+                fail(f"Unknown Data Layer assignment requested: {name}")
+            subsystem.add_actor_to_data_layer(actor, layer)
+        return
+
+    try:
+        actor.set_editor_property("layers", [unreal.Name(name) for name in layer_names])
+    except Exception as error:
+        warn(f"Unable to apply fallback Editor Layers to {actor.get_actor_label()}: {error}")
 
 
 def spawn_box(
@@ -410,13 +462,11 @@ def tiled_ground(
         for column in range(columns):
             center_x = min_x + tile_w * (column + 0.5)
             center_y = min_y + tile_d * (row + 0.5)
-            surface_z = ground_z
-            center_z = surface_z - GROUND_THICKNESS_CM * 0.5
-            stable_id = f"WorldShell.Ground.{district}.{row:02d}.{column:02d}"
+            center_z = ground_z - GROUND_THICKNESS_CM * 0.5
             spawn_box(
                 mesh,
                 label=f"ZS_WS_Ground_{district}_{row:02d}_{column:02d}",
-                stable_id=stable_id,
+                stable_id=f"WorldShell.Ground.{district}.{row:02d}.{column:02d}",
                 district=district,
                 center=(center_x, center_y, center_z),
                 size=(tile_w, tile_d, GROUND_THICKNESS_CM),
@@ -441,15 +491,14 @@ def spawn_outline(
     center_y = (min_y + max_y) * 0.5
     width = max_x - min_x
     depth = max_y - min_y
-    z = BOUNDARY_GUIDE_Z_CM
     district_layer = DISTRICT_DATA_LAYERS.get(district)
     layer_names = ("DL_ZS_Greybox", district_layer) if district_layer else ("DL_ZS_Greybox",)
 
     edges = (
-        ("N", (center_x, max_y, z), (width, BOUNDARY_GUIDE_WIDTH_CM, 60.0)),
-        ("S", (center_x, min_y, z), (width, BOUNDARY_GUIDE_WIDTH_CM, 60.0)),
-        ("E", (max_x, center_y, z), (BOUNDARY_GUIDE_WIDTH_CM, depth, 60.0)),
-        ("W", (min_x, center_y, z), (BOUNDARY_GUIDE_WIDTH_CM, depth, 60.0)),
+        ("N", (center_x, max_y, BOUNDARY_GUIDE_Z_CM), (width, BOUNDARY_GUIDE_WIDTH_CM, 60.0)),
+        ("S", (center_x, min_y, BOUNDARY_GUIDE_Z_CM), (width, BOUNDARY_GUIDE_WIDTH_CM, 60.0)),
+        ("E", (max_x, center_y, BOUNDARY_GUIDE_Z_CM), (BOUNDARY_GUIDE_WIDTH_CM, depth, 60.0)),
+        ("W", (min_x, center_y, BOUNDARY_GUIDE_Z_CM), (BOUNDARY_GUIDE_WIDTH_CM, depth, 60.0)),
     )
     for suffix, center, size in edges:
         spawn_box(
@@ -484,7 +533,11 @@ def spawn_road_guide(
     if length <= 0.0:
         fail(f"Road guide {road_id} has zero length.")
     yaw = math.degrees(math.atan2(dy, dx))
-    center = ((start[0] + end[0]) * 0.5, (start[1] + end[1]) * 0.5, ROAD_GUIDE_Z_CM)
+    center = (
+        (start[0] + end[0]) * 0.5,
+        (start[1] + end[1]) * 0.5,
+        ROAD_GUIDE_Z_CM,
+    )
 
     district_layer = DISTRICT_DATA_LAYERS.get(district)
     layer_names = ("DL_ZS_Greybox", district_layer) if district_layer else ("DL_ZS_Greybox",)
@@ -551,7 +604,7 @@ def run() -> None:
 
     create_partitioned_level()
     streaming_configured, grid_configured = configure_world_partition()
-    layers = create_data_layers()
+    layers, data_layers_created = create_data_layers()
     cube_mesh = unreal.load_asset(ENGINE_CUBE)
     if cube_mesh is None:
         fail(f"Engine cube disappeared after map creation: {ENGINE_CUBE}")
@@ -568,7 +621,6 @@ def run() -> None:
             layers=layers,
         )
 
-    # Full playable world envelope, separate from district ownership bounds.
     world_bounds = (
         PLAYABLE_MIN_X,
         PLAYABLE_MAX_X,
@@ -611,7 +663,11 @@ def run() -> None:
             "runtime_grid_python_configured": grid_configured,
             "runtime_grid_target_cell_size_cm": RUNTIME_GRID_CELL_SIZE_CM,
             "runtime_grid_target_loading_range_cm": RUNTIME_GRID_LOADING_RANGE_CM,
-            "data_layers": list(DATA_LAYER_NAMES),
+            "data_layer_expected_names": list(DATA_LAYER_NAMES),
+            "data_layers_created": data_layers_created,
+            "data_layer_created_count": len(layers),
+            "data_layers_deferred": not data_layers_created,
+            "editor_layer_fallback_used": not data_layers_created,
             "ground_tile_count": ground_count,
             "boundary_guide_count": boundary_count,
             "world_corner_marker_count": corner_count,
@@ -621,13 +677,18 @@ def run() -> None:
         },
     )
 
-    warnings = 0 if grid_configured else 1
+    warnings = int(not grid_configured) + int(not data_layers_created)
+    data_layer_summary = (
+        str(len(layers))
+        if data_layers_created
+        else "0 (deferred; Editor Layers + ZS tags fallback active)"
+    )
     summary = (
         "World shell generation PASSED.\n\n"
         f"Map: {GREYBOX_MAP}\n"
         f"Ground tiles: {ground_count}\n"
         f"Road guides: {len(ROAD_SEGMENTS)}\n"
-        f"Data Layers: {len(DATA_LAYER_NAMES)}\n"
+        f"Data Layers: {data_layer_summary}\n"
         f"Warnings requiring review: {warnings}\n\n"
         f"Report:\n{report}"
     )
