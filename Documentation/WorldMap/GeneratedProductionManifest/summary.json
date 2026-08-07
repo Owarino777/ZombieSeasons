@@ -1,0 +1,44 @@
+{
+  "approved_count": 201,
+  "basis_counts": {
+    "AUTO_POLICY": 280,
+    "VISUAL": 37
+  },
+  "category_counts_approved": {
+    "architecture_general": 32,
+    "barrier_fence": 14,
+    "debris_rubble": 10,
+    "door_window": 20,
+    "road_material": 1,
+    "roof": 14,
+    "ruin_general": 18,
+    "stairs_traversal": 3,
+    "street_prop": 25,
+    "structural": 20,
+    "vehicle": 12,
+    "wall_facade": 32
+  },
+  "decision_counts": {
+    "APPROVED": 201,
+    "RESERVE": 116
+  },
+  "generator_enabled_count": 201,
+  "manifest_asset_count": 317,
+  "pack_counts_approved": {
+    "AsphaltMat": 1,
+    "CitySampleBuildings": 110,
+    "CitySampleVehicles": 12,
+    "Scene_UnfinishedBuilding": 45,
+    "Street_Props_Pack_V1": 33
+  },
+  "policy": {
+    "approved_enabled_by_default": true,
+    "district_pool_is_policy_not_visual_claim": true,
+    "generator_uses_explicit_paths_only": true,
+    "rejected_assets_excluded": true,
+    "reserve_disabled_by_default": true,
+    "wildcard_runtime_asset_discovery": false
+  },
+  "rejected_excluded_count": 82,
+  "reserve_count": 116
+}

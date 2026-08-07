@@ -1,5 +1,9 @@
 {
-  "batch_count": 23,
+  "batch_count": 14,
+  "category_batch_sizes": {
+    "architecture_general": 40,
+    "wall_facade": 40
+  },
   "category_counts": {
     "architecture_general": 80,
     "barrier_fence": 22,
@@ -14,6 +18,7 @@
     "vehicle": 27,
     "wall_facade": 80
   },
+  "default_mesh_batch_size": 48,
   "kind_counts": {
     "MATERIAL": 10,
     "MESH": 389
@@ -30,7 +35,8 @@
     "batch_maps_are_non_destructive": true,
     "generator_must_not_use_pending_assets": true,
     "generator_must_not_use_rejected_assets": true,
-    "initial_state_is_pending": true
+    "initial_state_is_pending": true,
+    "keep_category_together_when_practical": true
   },
   "review_asset_count": 399
 }

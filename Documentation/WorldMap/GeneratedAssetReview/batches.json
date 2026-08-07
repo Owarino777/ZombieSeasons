@@ -1,5 +1,4 @@
 {
-  "batch_size": 24,
   "batches": [
     {
       "asset_count": 10,
@@ -52,7 +51,7 @@
       ]
     },
     {
-      "asset_count": 24,
+      "asset_count": 34,
       "batch_id": "Mesh_street_prop_01",
       "category": "street_prop",
       "kind": "MESH",
@@ -81,16 +80,7 @@
         "M0043",
         "M0044",
         "M0045",
-        "M0046"
-      ]
-    },
-    {
-      "asset_count": 10,
-      "batch_id": "Mesh_street_prop_02",
-      "category": "street_prop",
-      "kind": "MESH",
-      "map_name": "ZS_Validate_Mesh_street_prop_02",
-      "review_ids": [
+        "M0046",
         "M0047",
         "M0048",
         "M0049",
@@ -128,7 +118,7 @@
       ]
     },
     {
-      "asset_count": 24,
+      "asset_count": 32,
       "batch_id": "Mesh_ruin_general_01",
       "category": "ruin_general",
       "kind": "MESH",
@@ -157,16 +147,7 @@
         "M0092",
         "M0093",
         "M0094",
-        "M0095"
-      ]
-    },
-    {
-      "asset_count": 8,
-      "batch_id": "Mesh_ruin_general_02",
-      "category": "ruin_general",
-      "kind": "MESH",
-      "map_name": "ZS_Validate_Mesh_ruin_general_02",
-      "review_ids": [
+        "M0095",
         "M0096",
         "M0097",
         "M0098",
@@ -178,7 +159,7 @@
       ]
     },
     {
-      "asset_count": 24,
+      "asset_count": 27,
       "batch_id": "Mesh_vehicle_01",
       "category": "vehicle",
       "kind": "MESH",
@@ -207,16 +188,7 @@
         "M0124",
         "M0125",
         "M0126",
-        "M0127"
-      ]
-    },
-    {
-      "asset_count": 3,
-      "batch_id": "Mesh_vehicle_02",
-      "category": "vehicle",
-      "kind": "MESH",
-      "map_name": "ZS_Validate_Mesh_vehicle_02",
-      "review_ids": [
+        "M0127",
         "M0128",
         "M0129",
         "M0130"
@@ -235,7 +207,7 @@
       ]
     },
     {
-      "asset_count": 24,
+      "asset_count": 36,
       "batch_id": "Mesh_door_window_01",
       "category": "door_window",
       "kind": "MESH",
@@ -264,16 +236,7 @@
         "M0154",
         "M0155",
         "M0156",
-        "M0157"
-      ]
-    },
-    {
-      "asset_count": 12,
-      "batch_id": "Mesh_door_window_02",
-      "category": "door_window",
-      "kind": "MESH",
-      "map_name": "ZS_Validate_Mesh_door_window_02",
-      "review_ids": [
+        "M0157",
         "M0158",
         "M0159",
         "M0160",
@@ -322,7 +285,7 @@
       ]
     },
     {
-      "asset_count": 24,
+      "asset_count": 36,
       "batch_id": "Mesh_structural_01",
       "category": "structural",
       "kind": "MESH",
@@ -351,16 +314,7 @@
         "M0214",
         "M0215",
         "M0216",
-        "M0217"
-      ]
-    },
-    {
-      "asset_count": 12,
-      "batch_id": "Mesh_structural_02",
-      "category": "structural",
-      "kind": "MESH",
-      "map_name": "ZS_Validate_Mesh_structural_02",
-      "review_ids": [
+        "M0217",
         "M0218",
         "M0219",
         "M0220",
@@ -376,7 +330,7 @@
       ]
     },
     {
-      "asset_count": 24,
+      "asset_count": 40,
       "batch_id": "Mesh_wall_facade_01",
       "category": "wall_facade",
       "kind": "MESH",
@@ -405,16 +359,7 @@
         "M0250",
         "M0251",
         "M0252",
-        "M0253"
-      ]
-    },
-    {
-      "asset_count": 24,
-      "batch_id": "Mesh_wall_facade_02",
-      "category": "wall_facade",
-      "kind": "MESH",
-      "map_name": "ZS_Validate_Mesh_wall_facade_02",
-      "review_ids": [
+        "M0253",
         "M0254",
         "M0255",
         "M0256",
@@ -430,7 +375,16 @@
         "M0266",
         "M0267",
         "M0268",
-        "M0269",
+        "M0269"
+      ]
+    },
+    {
+      "asset_count": 40,
+      "batch_id": "Mesh_wall_facade_02",
+      "category": "wall_facade",
+      "kind": "MESH",
+      "map_name": "ZS_Validate_Mesh_wall_facade_02",
+      "review_ids": [
         "M0270",
         "M0271",
         "M0272",
@@ -438,16 +392,7 @@
         "M0274",
         "M0275",
         "M0276",
-        "M0277"
-      ]
-    },
-    {
-      "asset_count": 24,
-      "batch_id": "Mesh_wall_facade_03",
-      "category": "wall_facade",
-      "kind": "MESH",
-      "map_name": "ZS_Validate_Mesh_wall_facade_03",
-      "review_ids": [
+        "M0277",
         "M0278",
         "M0279",
         "M0280",
@@ -471,16 +416,7 @@
         "M0298",
         "M0299",
         "M0300",
-        "M0301"
-      ]
-    },
-    {
-      "asset_count": 8,
-      "batch_id": "Mesh_wall_facade_04",
-      "category": "wall_facade",
-      "kind": "MESH",
-      "map_name": "ZS_Validate_Mesh_wall_facade_04",
-      "review_ids": [
+        "M0301",
         "M0302",
         "M0303",
         "M0304",
@@ -492,7 +428,7 @@
       ]
     },
     {
-      "asset_count": 24,
+      "asset_count": 40,
       "batch_id": "Mesh_architecture_general_01",
       "category": "architecture_general",
       "kind": "MESH",
@@ -521,16 +457,7 @@
         "M0330",
         "M0331",
         "M0332",
-        "M0333"
-      ]
-    },
-    {
-      "asset_count": 24,
-      "batch_id": "Mesh_architecture_general_02",
-      "category": "architecture_general",
-      "kind": "MESH",
-      "map_name": "ZS_Validate_Mesh_architecture_general_02",
-      "review_ids": [
+        "M0333",
         "M0334",
         "M0335",
         "M0336",
@@ -546,7 +473,16 @@
         "M0346",
         "M0347",
         "M0348",
-        "M0349",
+        "M0349"
+      ]
+    },
+    {
+      "asset_count": 40,
+      "batch_id": "Mesh_architecture_general_02",
+      "category": "architecture_general",
+      "kind": "MESH",
+      "map_name": "ZS_Validate_Mesh_architecture_general_02",
+      "review_ids": [
         "M0350",
         "M0351",
         "M0352",
@@ -554,16 +490,7 @@
         "M0354",
         "M0355",
         "M0356",
-        "M0357"
-      ]
-    },
-    {
-      "asset_count": 24,
-      "batch_id": "Mesh_architecture_general_03",
-      "category": "architecture_general",
-      "kind": "MESH",
-      "map_name": "ZS_Validate_Mesh_architecture_general_03",
-      "review_ids": [
+        "M0357",
         "M0358",
         "M0359",
         "M0360",
@@ -587,16 +514,7 @@
         "M0378",
         "M0379",
         "M0380",
-        "M0381"
-      ]
-    },
-    {
-      "asset_count": 8,
-      "batch_id": "Mesh_architecture_general_04",
-      "category": "architecture_general",
-      "kind": "MESH",
-      "map_name": "ZS_Validate_Mesh_architecture_general_04",
-      "review_ids": [
+        "M0381",
         "M0382",
         "M0383",
         "M0384",
@@ -608,5 +526,10 @@
       ]
     }
   ],
+  "category_batch_sizes": {
+    "architecture_general": 40,
+    "wall_facade": 40
+  },
+  "default_mesh_batch_size": 48,
   "gallery_root": "/Game/ZombieSeasons/Validation/AssetGallery"
 }
