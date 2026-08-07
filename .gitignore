@@ -2,6 +2,7 @@ Binaries
 DerivedDataCache
 Intermediate
 Saved
+Build/
 .vscode
 .vs
 *.VC.db
@@ -15,6 +16,7 @@ Saved
 
 # Unreal Engine per-user editor settings
 Config/DefaultEditorPerProjectUserSettings.ini
+
 # Local third-party Unreal content
 Content/AsphaltMat/
 Content/CitySampleBuildings/
