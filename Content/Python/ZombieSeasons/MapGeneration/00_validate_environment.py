@@ -11,7 +11,6 @@ Blueprint paths, disk headroom, destination-map state, and the final manifest.
 
 from __future__ import annotations
 
-import importlib.util
 import json
 import shutil
 import sys
@@ -100,6 +99,14 @@ def check_configuration() -> tuple[list[str], list[str]]:
 
 
 def check_editor_python_capabilities() -> tuple[list[str], list[str]]:
+    """Verify the editor Python API through symbols exposed by the embedded runtime.
+
+    Unreal injects its ``unreal`` module into the embedded interpreter and, in UE 5.5,
+    that module can legitimately have ``__spec__`` set to ``None``. Calling
+    ``importlib.util.find_spec('unreal')`` in that state raises ``ValueError`` even
+    though the module is loaded and fully usable. Reaching this function already
+    proves the import succeeded, so capability checks must rely on API symbols only.
+    """
     errors: list[str] = []
     warnings: list[str] = []
 
@@ -113,11 +120,10 @@ def check_editor_python_capabilities() -> tuple[list[str], list[str]]:
         if not hasattr(unreal, symbol):
             errors.append(f"Required Unreal Python symbol is unavailable: unreal.{symbol}")
 
-    # The script itself proves the Python Editor Script Plugin is active. Editor
-    # scripting capability is verified through symbols rather than plugin-name APIs,
-    # which vary between UE versions.
-    if importlib.util.find_spec("unreal") is None:
-        warnings.append("The standard importlib resolver cannot locate the unreal module.")
+    if sys.modules.get("unreal") is not unreal:
+        warnings.append(
+            "The embedded Unreal Python module is not registered in sys.modules as expected."
+        )
 
     return errors, warnings
 
