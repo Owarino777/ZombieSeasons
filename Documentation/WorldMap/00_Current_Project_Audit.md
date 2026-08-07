@@ -1,85 +1,140 @@
 # 00 — Current Project Audit
 
-## Confirmed repository facts
+## Audit status
+
+The local Unreal Editor audit was completed on Unreal Engine 5.5.4 and committed under `Documentation/WorldMap/GeneratedAudit/`.
 
 | Item | Confirmed value |
 |---|---|
-| Repository | `Owarino777/ZombieSeasons` |
-| Default branch | `master` |
-| Unreal association | `5.5` |
-| Project type | First Person Blueprint template |
-| Startup map | `/Game/FirstPerson/Maps/FirstPersonMap` |
-| Default map | `/Game/FirstPerson/Maps/FirstPersonMap` |
-| Default game mode | `/Game/FirstPerson/Blueprints/BP_FirstPersonGameMode` |
-| Graphics API | DirectX 12 / Shader Model 6 |
-| Dynamic GI | Lumen enabled |
-| Reflections | Lumen reflection method enabled |
-| Virtual Shadow Maps | Enabled |
-| Ray tracing | Enabled in configuration |
-| Static lighting | Disabled |
-| Modeling Tools Editor Mode | Enabled |
+| Working branch | `feat/unreal-ai-map-generation` |
+| Unreal Engine | `5.5.4-40574608+++UE5+Release-5.5` |
+| Project name | `ZombieSeasons` |
+| Editor startup map | `/Game/TopDownShooter/Maps/MainMap` |
+| Game default map | `/Game/TopDownShooter/Maps/MainMap` |
+| Global default GameMode | `/Game/TopDownShooter/Core/BP_GameMode` |
+| Scanned mounts | `/Game`, `/Fab` |
+| Total audited assets | 779 |
+| `/Game` assets | 698 |
+| `/Fab` assets | 81 |
+| Blueprints | 24 |
+| Maps | 9 |
+| Static meshes | 81 |
+| Materials | 98 |
+| Material instances | 11 |
+| Textures | 142 |
+| Sound waves | 32 |
+| Sound cues | 17 |
+| Object redirectors | 287 |
+| Failed Blueprint loads | 0 |
 
-## Confirmed gameplay assets
+## Confirmed production gameplay assets
 
-- `/Game/FirstPerson/Blueprints/BP_FirstPersonCharacter`
-- `/Game/FirstPerson/Blueprints/BP_FirstPersonGameMode`
-- `/Game/FirstPerson/Blueprints/BP_FirstPersonProjectile`
-- `/Game/FirstPerson/Blueprints/BP_Pickup_Rifle`
-- `/Game/FirstPerson/Blueprints/BP_Weapon_Component`
-- `/Game/FirstPerson/Blueprints/AIC_Zombie`
-- `/Game/FirstPerson/Blueprints/Enemies/BP_Zombie`
-- Enhanced Input actions for movement, look, jump, and shoot.
-- First-person arms, rifle animations, projectile, and starter content.
-- Level-prototyping meshes and materials suitable for greyboxing.
+The actual production gameplay is under `/Game/TopDownShooter/`, not the legacy First Person template paths.
 
-## Confirmed current map inventory
+### Player and gameplay
 
-- `/Game/FirstPerson/Maps/FirstPersonMap`
-- Starter Content demonstration maps.
+- `/Game/TopDownShooter/Core/BP_FPSCharacter`
+- `/Game/TopDownShooter/Core/BP_Hero`
+- `/Game/TopDownShooter/Core/BP_Character`
+- `/Game/TopDownShooter/Core/BP_FPSGameMode`
+- `/Game/TopDownShooter/Core/BP_GameMode`
+- `/Game/TopDownShooter/Core/WBP_InGameHUD`
+- `/Game/TopDownShooter/Core/BPI_Damageable`
+- `/Game/TopDownShooter/Core/BPI_GameMode_MP`
 
-There is no confirmed production map for ZombieSeasons in the visible repository state.
+### Enemy system
 
-## Current limitations
+- `/Game/TopDownShooter/Core/BP_Enemy`
+- `/Game/TopDownShooter/Core/BP_EnemySpawner`
+- `/Game/TopDownShooter/Core/AIC_Enemy`
+- `/Game/TopDownShooter/Core/Animation/ABP_Enemy`
+- `/Game/TopDownShooter/Core/Animation/BS_Enemy_Walk`
 
-GitHub can confirm that `.uasset` and `.umap` files exist, but it cannot safely expose their Blueprint graph contents. The following data must be exported by Unreal Editor before automated integration:
+`BP_Enemy` depends on the AI controller, enemy animation blueprint, damage interface and GameMode interface. `BP_EnemySpawner` depends directly on `BP_Enemy`, `BPI_GameMode_MP`, AIModule and NavigationSystem. This confirms that enemy spawning and navigation already exist and must be integrated rather than replaced.
 
-- Blueprint parent classes.
-- Public variables and types.
-- Interfaces implemented.
-- Event dispatchers.
-- Callable functions.
-- Behavior Tree and Blackboard references.
-- Spawn logic and wave-management contracts.
-- Health and damage interfaces.
-- Loot and pickup interfaces.
-- Save-game integration.
-- Collision presets used by zombies and interactables.
-- Navigation agent radius, height, and step limits.
-- Asset dependencies and redirectors.
+### Weapons and input
 
-## Required local audit output
+- `/Game/TopDownShooter/Core/Weapon/BP_Gun`
+- `/Game/TopDownShooter/Core/Weapon/BP_Projectile`
+- `/Game/TopDownShooter/Core/Inputs/IMC_FPS`
+- `/Game/TopDownShooter/Core/Inputs/IMC_TopDown`
+- `/Game/TopDownShooter/Core/Inputs/INP_AutoFire`
+- `/Game/TopDownShooter/Core/Inputs/INP_FireProjectile`
+- `/Game/TopDownShooter/Core/Inputs/INP_LookAround`
+- `/Game/TopDownShooter/Core/Inputs/INP_MoveAround`
 
-Run `Tools/export_project_audit.py` from Unreal Editor. The audit must produce:
+`BP_FPSCharacter` already depends on the FPS gameplay assets, HUD/game-mode interfaces, weapon Blueprint and Enhanced Input.
 
-```text
-Saved/ZombieSeasonsAudit/
-├── assets.csv
-├── blueprints.csv
-├── maps.csv
-├── plugins.csv
-└── project_summary.json
-```
+## Confirmed maps
 
-These files must then be committed under:
+Project gameplay maps:
 
-```text
-Documentation/WorldMap/GeneratedAudit/
-```
+- `/Game/TopDownShooter/Maps/AI_TestMap`
+- `/Game/TopDownShooter/Maps/MainMap`
+- `/Game/TopDownShooter/Maps/MainMap1`
+- `/Game/TopDownShooter/Maps/ZM_BlackTide_Greybox`
+- `/Game/TopDownShooter/Maps/ZM_BlackTide_ArtPass`
+- `/Game/TopDownShooter/Maps/ZM_BlackTide_ArtPass_V2`
 
-## Security and repository hygiene
+Starter Content maps:
 
-The current `DefaultEngine.ini` includes an Android File Server security token. It is not intended as a gameplay secret, but environment-specific tokens should not be relied on as stable credentials. Do not add API keys, Fab credentials, Epic account information, or local file-system paths to the repository.
+- `/Game/TopDownShooter/Ressources/StarterContent/Maps/Advanced_Lighting`
+- `/Game/TopDownShooter/Ressources/StarterContent/Maps/Minimal_Default`
+- `/Game/TopDownShooter/Ressources/StarterContent/Maps/StarterMap`
 
-## Audit gate
+`ZM_BlackTide_*` already uses `BP_FPSGameMode` and NavigationSystem and is the reference implementation for non-destructive Python-assisted map generation. It is not the target final map.
 
-The project is ready for documentation and greybox planning now. It is not ready for a one-shot final art build until the local audit and free asset acquisition are complete.
+## Existing environment content
+
+The project contains Starter Content architecture, props, shapes, materials, audio and effects. These are enough for greyboxing and for a limited art pass, but not enough for the intended AAA-quality large seasonal map.
+
+The `/Fab` mount currently contains 81 assets, but most belong to Fab/Megascans support materials, material functions and the Global Foliage Actor. They are not a complete city/environment pack.
+
+A Megascans coconut asset is already referenced inside the project under `/Game/TopDownShooter/Ressources/Fab/Megascans/3D/...`, which confirms Fab/Megascans content has already been imported at least once.
+
+## Rendering configuration
+
+Confirmed in `Config/DefaultEngine.ini`:
+
+- DirectX 12 / SM6;
+- Lumen dynamic global illumination;
+- Lumen reflections;
+- Virtual Shadow Maps;
+- ray tracing enabled;
+- static lighting disabled;
+- desktop / maximum graphics target.
+
+These settings are appropriate for the intended visual direction but require strict environment and zombie-performance budgets.
+
+## Plugin state
+
+Declared in the project file:
+
+- `ModelingToolsEditorMode` — enabled;
+- `RawInput` — enabled.
+
+Python Editor Script Plugin and Editor Scripting Utilities are enabled in the local editor for production tooling, even though they are not declared as project plugin entries in the `.uproject` audit output.
+
+## Audit limitations that remain
+
+The first audit successfully inventories assets and dependency relationships, but Unreal Engine 5.5 Python did not expose the old `AssetData.tags_and_values` interface and Blueprint asset properties such as `parent_class` through the attempted property access. Those fields therefore remain unavailable in the first CSV export.
+
+This does not block level production because the dependency graph already confirms the major gameplay contracts. Before changing gameplay Blueprints, a second targeted Blueprint-introspection audit should be used instead of guessing graph internals.
+
+## Repository hygiene
+
+There are 287 ObjectRedirectors in the audited content. Do not bulk-delete or fix redirectors during map production without a dedicated backup and validation pass because existing maps and Blueprints may still depend on them.
+
+Do not add API keys, Fab credentials, Epic account credentials or machine-specific secrets to the repository.
+
+## Production gate
+
+The project is ready for:
+
+- full level-design documentation;
+- final world measurements;
+- deterministic greybox generation;
+- gameplay placement using existing `BP_EnemySpawner` / `BP_FPSGameMode` contracts;
+- acquisition of approved free environment content.
+
+The project is not ready for the final art build until the approved free packs have been imported and re-audited so their exact Unreal object paths can be frozen in `AssetRegistry.csv`.
