@@ -1,7 +1,8 @@
 """Build a compact production shortlist from the classified environment catalog.
 
-This is the hardened v2 implementation used by ZombieSeasons. It runs with
-standard Python and never loads Unreal assets.
+This hardened implementation runs with standard Python and never loads Unreal
+assets. It expects the token-aware environment catalog produced by
+build_environment_catalog.py.
 """
 
 from __future__ import annotations
@@ -22,14 +23,14 @@ OUTPUT_JSON = OUTPUT_DIRECTORY / "production_shortlist_summary.json"
 MESH_CLASSES = {"StaticMesh", "SkeletalMesh"}
 
 CATEGORY_QUOTAS: dict[str, int] = {
-    "road": 12,
+    "road": 24,
     "wall_facade": 80,
     "door_window": 36,
     "roof": 24,
-    "stairs_traversal": 12,
+    "stairs_traversal": 16,
     "structural": 36,
-    "street_prop": 24,
-    "barrier_fence": 24,
+    "street_prop": 32,
+    "barrier_fence": 32,
     "debris_rubble": 36,
     "construction": 16,
     "vehicle": 40,
@@ -50,7 +51,7 @@ POSITIVE_KEYWORDS: dict[str, tuple[str, ...]] = {
     "roof": ("roof", "rooftop", "parapet", "cornice"),
     "stairs_traversal": ("stair", "stairs", "step", "ramp", "walkway", "bridge", "fireescape"),
     "structural": ("column", "pillar", "beam", "floor", "ceiling", "support"),
-    "street_prop": ("lamp", "traffic", "sign", "hydrant", "bollard", "bench", "mailbox"),
+    "street_prop": ("lamp", "traffic", "sign", "hydrant", "bollard", "bench", "mailbox", "manhole"),
     "barrier_fence": ("fence", "barrier", "barricade", "railing", "guardrail"),
     "debris_rubble": ("debris", "rubble", "broken", "damaged", "destroyed", "wreck", "trash", "garbage"),
     "construction": ("construction", "scaffold", "rebar", "concrete", "plywood"),
@@ -79,7 +80,9 @@ HARD_REJECT_PATTERNS = tuple(
     )
 )
 
-SOFT_PENALTY_KEYWORDS = ("variant", "temp", "old", "deprecated", "sample", "demo", "guide")
+# Do not penalize the word "sample": every City Sample asset contains it in its
+# package path, so that penalty was non-discriminating.
+SOFT_PENALTY_KEYWORDS = ("variant", "temp", "old", "deprecated", "demo", "guide", "reference")
 
 OUTPUT_FIELDS = [
     "pack",
@@ -264,6 +267,7 @@ def write_csv(path: Path, rows: list[dict[str, str]]) -> None:
 def write_summary(path: Path, source_count: int, scored_count: int, rows: list[dict[str, str]], rejected: Counter[str]) -> None:
     payload = {
         "source": str(INPUT_FILE.relative_to(WORLD_MAP_DIRECTORY)),
+        "shortlist_version": 2,
         "source_candidate_count": source_count,
         "scored_candidate_count": scored_count,
         "shortlist_count": len(rows),
