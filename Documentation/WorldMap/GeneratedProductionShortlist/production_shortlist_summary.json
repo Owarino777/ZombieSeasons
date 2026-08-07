@@ -1,0 +1,60 @@
+{
+  "asset_class_counts": {
+    "SkeletalMesh": 12,
+    "StaticMesh": 339
+  },
+  "category_counts": {
+    "architecture_general": 80,
+    "construction": 4,
+    "debris_rubble": 13,
+    "door_window": 36,
+    "road": 6,
+    "roof": 24,
+    "ruin_general": 32,
+    "stairs_traversal": 3,
+    "street_prop": 7,
+    "structural": 36,
+    "vehicle": 30,
+    "wall_facade": 80
+  },
+  "category_quotas": {
+    "architecture_general": 80,
+    "barrier_fence": 24,
+    "construction": 16,
+    "debris_rubble": 36,
+    "door_window": 36,
+    "road": 12,
+    "roof": 24,
+    "ruin_general": 32,
+    "stairs_traversal": 12,
+    "street_prop": 24,
+    "structural": 36,
+    "vehicle": 40,
+    "wall_facade": 80
+  },
+  "hard_reject_counts": {
+    "technical_pattern:(^|[/_.-])lod[0-9]*($|[/_.-])": 13,
+    "vehicle_internal_component": 90
+  },
+  "pack_counts": {
+    "CitySampleBuildings": 249,
+    "CitySampleVehicles": 27,
+    "Scene_UnfinishedBuilding": 75
+  },
+  "pack_minimums": {
+    "CitySampleBuildings": 120,
+    "CitySampleVehicles": 24,
+    "Scene_UnfinishedBuilding": 48
+  },
+  "policy": {
+    "generator_may_only_use_explicit_approved_manifest": true,
+    "loads_unreal_assets": false,
+    "metadata_only": true,
+    "shortlisted_is_not_approved": true,
+    "visual_review_required_before_generator_use": true
+  },
+  "scored_candidate_count": 2512,
+  "shortlist_count": 351,
+  "source": "GeneratedEnvironmentCatalog\\environment_assets.csv",
+  "source_candidate_count": 2615
+}
