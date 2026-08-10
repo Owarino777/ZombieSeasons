@@ -300,7 +300,7 @@ def spawn_box(
     actor = get_actor_subsystem().spawn_actor_from_class(
         unreal.StaticMeshActor,
         unreal.Vector(*center),
-        unreal.Rotator(0.0, yaw, 0.0),
+        unreal.Rotator(roll=0.0, pitch=0.0, yaw=yaw),
     )
     if actor is None:
         fail(f"Unable to spawn Hub actor: {label}")
@@ -675,7 +675,7 @@ def position_viewport() -> None:
         if subsystem is not None:
             subsystem.set_level_viewport_camera_info(
                 unreal.Vector(0.0, -25000.0, 25000.0),
-                unreal.Rotator(-35.0, 0.0, 0.0),
+                unreal.Rotator(roll=0.0, pitch=-35.0, yaw=90.0),
             )
     except Exception as error:
         warn(f"Unable to position the viewport for Hub review: {error}")
