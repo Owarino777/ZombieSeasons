@@ -5,8 +5,8 @@ Run from Unreal Editor only after Stage 6 Winter has passed and been committed:
 py "C:/Users/malik/Documents/Unreal Projects/ZombieSeasons/Content/Python/ZombieSeasons/MapGeneration/07_create_sewers.py"
 
 Stage 7 creates the frozen sewer junctions and a restrained traversal network beneath
-Hub/Spring/Summer/Autumn/Winter. It deliberately creates geometry and deterministic
-markers only. Runtime locks, objective state, zombie spawns, loot, and final art remain
+Hub/Spring/Summer/Autumn/Winter. It creates topology geometry and deterministic
+markers only. Runtime locks, objective state, zombie spawns, loot, and final art stay
 deferred to later stages.
 """
 
@@ -41,7 +41,6 @@ STAGE = "Sewers"
 MODE = "CREATE"
 ENGINE_CUBE = "/Engine/BasicShapes/Cube.Cube"
 
-SEWER_FLOOR_Z = -700.0
 FLOOR_THICKNESS = 24.0
 CORRIDOR_WIDTH = 600.0
 CORRIDOR_WALL_HEIGHT = 420.0
@@ -49,10 +48,7 @@ CORRIDOR_WALL_THICKNESS = 60.0
 CORRIDOR_CEILING_THICKNESS = 40.0
 CHAMBER_SIZE = 1600.0
 CHAMBER_HEIGHT = 520.0
-CHAMBER_WALL_THICKNESS = 70.0
 ACCESS_WIDTH = 500.0
-ACCESS_BARRIER_HEIGHT = 160.0
-ACCESS_BARRIER_THICKNESS = 40.0
 
 EDITOR_GREYBOX_LAYERS = (
     "DL_ZS_Greybox",
@@ -64,7 +60,7 @@ EDITOR_GAMEPLAY_LAYERS = (
     "DL_ZS_Sewers",
 )
 
-# Frozen sewer junctions from 07_Production_World_Specification.md.
+# Frozen junctions from 07_Production_World_Specification.md.
 SEWER_JUNCTIONS: dict[str, tuple[float, float, float]] = {
     "Hub": (0.0, -6000.0, -700.0),
     "Spring": (-40000.0, 18000.0, -700.0),
@@ -74,21 +70,19 @@ SEWER_JUNCTIONS: dict[str, tuple[float, float, float]] = {
     "Control": (25000.0, -78000.0, -500.0),
 }
 
-# Main underground links. These keep the sewer a shortcut network rather than a
-# second district. The four district junctions radiate from Hub; Winter continues
-# south to the frozen control-room junction defined by the production specification.
+# Underground links. The Spring<->Autumn west loop prevents the Autumn branch from
+# becoming a long single-entry dead end while still keeping the network simple.
 NETWORK_LINKS: tuple[tuple[str, str, str], ...] = (
     ("Hub_Spring", "Hub", "Spring"),
     ("Hub_Summer", "Hub", "Summer"),
     ("Hub_Autumn", "Hub", "Autumn"),
     ("Hub_Winter", "Hub", "Winter"),
+    ("Spring_Autumn", "Spring", "Autumn"),
     ("Winter_Control", "Winter", "Control"),
 )
 
-# Surface-to-sewer access surfaces. Spring and Summer use their frozen district
-# entrance anchors; Hub gets the initially available maintenance access. Winter's
-# Stage-6 UtilityTunnel already terminates at the Control junction, so Stage 7 does
-# not duplicate that surface route.
+# Surface access. Spring and Summer use frozen district anchors. Winter already has
+# Stage-6 UtilityTunnel geometry terminating at SWR_CONTROL, so it is not duplicated.
 ACCESS_ROUTES: tuple[
     tuple[str, tuple[float, float, float], tuple[float, float, float]], ...
 ] = (
@@ -97,8 +91,7 @@ ACCESS_ROUTES: tuple[
     ("SummerStormDrain", (24000.0, 31000.0, -100.0), SEWER_JUNCTIONS["Summer"]),
 )
 
-# Runtime progression will later decide when these become traversable. Hub is the
-# only segment intended to be open at initial onboarding.
+# These are deterministic Stage-9 adapter anchors, not functioning locks yet.
 LOCK_MARKERS: tuple[tuple[str, str, bool], ...] = (
     ("HubMaintenance", "Hub", True),
     ("SpringConnection", "Spring", False),
@@ -311,78 +304,54 @@ def spawn_box(
     return actor
 
 
-def direction_transform(
+def segment_transform(
     start: tuple[float, float, float],
     end: tuple[float, float, float],
-) -> tuple[tuple[float, float, float], float, float, float]:
+) -> tuple[tuple[float, float, float], float, float, float, float, float]:
     dx = end[0] - start[0]
     dy = end[1] - start[1]
     dz = end[2] - start[2]
     horizontal = math.hypot(dx, dy)
     length = math.sqrt(dx * dx + dy * dy + dz * dz)
-    if length <= 0.0:
-        fail(f"Zero-length sewer segment requested: start={start}, end={end}")
-    yaw = math.degrees(math.atan2(dy, dx))
-    pitch = math.degrees(math.atan2(dz, horizontal))
+    if length <= 0.0 or horizontal <= 0.0:
+        fail(f"Invalid sewer segment: start={start}, end={end}")
     center = (
         (start[0] + end[0]) * 0.5,
         (start[1] + end[1]) * 0.5,
         (start[2] + end[2]) * 0.5,
     )
-    return center, length, yaw, pitch
+    yaw = math.degrees(math.atan2(dy, dx))
+    pitch = math.degrees(math.atan2(dz, horizontal))
+    return center, horizontal, length, yaw, pitch, math.degrees(math.atan2(dz, horizontal))
 
 
-def spawn_floor_segment(
+def spawn_corridor(
     mesh: Any,
-    *,
-    label: str,
-    stable_id: str,
+    link_id: str,
     start: tuple[float, float, float],
     end: tuple[float, float, float],
-    width: float,
-    folder: str,
-) -> Any:
-    center, length, yaw, pitch = direction_transform(start, end)
-    return spawn_box(
-        mesh,
-        label=label,
-        stable_id=stable_id,
-        center=center,
-        size=(length, width, FLOOR_THICKNESS),
-        folder=folder,
-        yaw=yaw,
-        pitch=pitch,
-    )
-
-
-def spawn_flat_corridor(mesh: Any, link_id: str, start: tuple[float, float, float], end: tuple[float, float, float]) -> int:
-    # Main sewer links are nearly flat. Floors/ceilings follow the tiny longitudinal
-    # grade, while side walls remain vertical for robust collision and readable scale.
+) -> int:
     folder = f"ZombieSeasons/Sewers/Corridors/{link_id}"
-    center, length, yaw, pitch = direction_transform(start, end)
+    center, horizontal, length, yaw, pitch, _ = segment_transform(start, end)
     dx = end[0] - start[0]
     dy = end[1] - start[1]
-    horizontal = math.hypot(dx, dy)
-    if horizontal <= 0.0:
-        fail(f"Sewer corridor has no horizontal run: {link_id}")
+    nx = -dy / horizontal
+    ny = dx / horizontal
 
-    floor_center = (center[0], center[1], center[2] + FLOOR_THICKNESS * 0.5)
+    floor_center_z = center[2] + FLOOR_THICKNESS * 0.5
     spawn_box(
         mesh,
         label=f"ZS_Sewer_{link_id}_Floor",
         stable_id=f"Sewer.Corridor.{link_id}.Floor",
-        center=floor_center,
+        center=(center[0], center[1], floor_center_z),
         size=(length, CORRIDOR_WIDTH, FLOOR_THICKNESS),
         folder=folder,
         yaw=yaw,
         pitch=pitch,
     )
 
-    # Perpendicular offset in XY for the two vertical side walls.
-    nx = -dy / horizontal
-    ny = dx / horizontal
     wall_offset = CORRIDOR_WIDTH * 0.5 + CORRIDOR_WALL_THICKNESS * 0.5
-    wall_center_z = center[2] + FLOOR_THICKNESS + CORRIDOR_WALL_HEIGHT * 0.5
+    wall_z = center[2] + FLOOR_THICKNESS + CORRIDOR_WALL_HEIGHT * 0.5
     for side, sign in (("Left", -1.0), ("Right", 1.0)):
         spawn_box(
             mesh,
@@ -391,65 +360,62 @@ def spawn_flat_corridor(mesh: Any, link_id: str, start: tuple[float, float, floa
             center=(
                 center[0] + nx * wall_offset * sign,
                 center[1] + ny * wall_offset * sign,
-                wall_center_z,
+                wall_z,
             ),
-            size=(horizontal, CORRIDOR_WALL_THICKNESS, CORRIDOR_WALL_HEIGHT),
+            size=(length, CORRIDOR_WALL_THICKNESS, CORRIDOR_WALL_HEIGHT),
             folder=folder,
             yaw=yaw,
+            pitch=pitch,
         )
 
-    ceiling_z = center[2] + FLOOR_THICKNESS + CORRIDOR_WALL_HEIGHT + CORRIDOR_CEILING_THICKNESS * 0.5
+    ceiling_z = (
+        center[2]
+        + FLOOR_THICKNESS
+        + CORRIDOR_WALL_HEIGHT
+        + CORRIDOR_CEILING_THICKNESS * 0.5
+    )
     spawn_box(
         mesh,
         label=f"ZS_Sewer_{link_id}_Ceiling",
         stable_id=f"Sewer.Corridor.{link_id}.Ceiling",
         center=(center[0], center[1], ceiling_z),
-        size=(horizontal, CORRIDOR_WIDTH + 2.0 * CORRIDOR_WALL_THICKNESS, CORRIDOR_CEILING_THICKNESS),
+        size=(length, CORRIDOR_WIDTH + 2.0 * CORRIDOR_WALL_THICKNESS, CORRIDOR_CEILING_THICKNESS),
         folder=folder,
         yaw=yaw,
+        pitch=pitch,
     )
     return 4
 
 
-def wall_pair_with_gap(
+def spawn_access_floor(
     mesh: Any,
-    *,
-    prefix: str,
-    side: str,
-    center: tuple[float, float],
-    axis: str,
-    total_length: float,
-    gap_width: float,
-    ground_z: float,
-    folder: str,
+    access_id: str,
+    start: tuple[float, float, float],
+    end: tuple[float, float, float],
 ) -> int:
-    segment_length = (total_length - gap_width) * 0.5
-    if segment_length <= 0.0:
-        fail(f"Invalid sewer chamber gap dimensions for {prefix}.{side}")
-    offset = gap_width * 0.5 + segment_length * 0.5
-    for suffix, sign in (("A", -1.0), ("B", 1.0)):
-        if axis == "X":
-            actor_center = (
-                center[0] + sign * offset,
-                center[1],
-                ground_z + FLOOR_THICKNESS + CHAMBER_HEIGHT * 0.5,
-            )
-            size = (segment_length, CHAMBER_WALL_THICKNESS, CHAMBER_HEIGHT)
-        else:
-            actor_center = (
-                center[0],
-                center[1] + sign * offset,
-                ground_z + FLOOR_THICKNESS + CHAMBER_HEIGHT * 0.5,
-            )
-            size = (CHAMBER_WALL_THICKNESS, segment_length, CHAMBER_HEIGHT)
-        spawn_box(
-            mesh,
-            label=f"ZS_Sewer_{prefix}_{side}_{suffix}",
-            stable_id=f"Sewer.Chamber.{prefix}.Wall.{side}.{suffix}",
-            center=actor_center,
-            size=size,
-            folder=folder,
-        )
+    folder = f"ZombieSeasons/Sewers/Access/{access_id}"
+    center, _horizontal, length, yaw, pitch, _ = segment_transform(start, end)
+    spawn_box(
+        mesh,
+        label=f"ZS_Sewer_Access_{access_id}_Floor",
+        stable_id=f"Sewer.Access.{access_id}.Floor",
+        center=(center[0], center[1], center[2] + FLOOR_THICKNESS * 0.5),
+        size=(length, ACCESS_WIDTH, FLOOR_THICKNESS),
+        folder=folder,
+        yaw=yaw,
+        pitch=pitch,
+    )
+    spawn_box(
+        mesh,
+        label=f"ZS_Sewer_Access_{access_id}_Marker",
+        stable_id=f"Sewer.Access.{access_id}.Marker",
+        center=(start[0], start[1], start[2] + 180.0),
+        size=(120.0, 120.0, 360.0),
+        folder=folder,
+        collision=False,
+        gameplay_marker=True,
+        editor_only=True,
+    )
     return 2
 
 
@@ -471,7 +437,7 @@ def create_stage_sentinel(mesh: Any) -> int:
 def create_network_corridors(mesh: Any) -> int:
     count = 0
     for link_id, start_name, end_name in NETWORK_LINKS:
-        count += spawn_flat_corridor(
+        count += spawn_corridor(
             mesh,
             link_id,
             SEWER_JUNCTIONS[start_name],
@@ -481,8 +447,10 @@ def create_network_corridors(mesh: Any) -> int:
 
 
 def create_junction_chambers(mesh: Any) -> int:
+    # Important: the frozen links approach chambers from arbitrary angles. Closed
+    # cardinal walls would block diagonal approaches, so Stage 7 uses open floor +
+    # ceiling volumes only. Final art can wrap them with properly aligned modules.
     count = 0
-    half = CHAMBER_SIZE * 0.5
     for name, (x, y, z) in SEWER_JUNCTIONS.items():
         folder = f"ZombieSeasons/Sewers/Junctions/{name}"
         spawn_box(
@@ -493,55 +461,6 @@ def create_junction_chambers(mesh: Any) -> int:
             size=(CHAMBER_SIZE, CHAMBER_SIZE, FLOOR_THICKNESS),
             folder=folder,
         )
-        count += 1
-
-        # Each chamber has wide openings on all four sides. The corridor network can
-        # therefore be art-passed/re-routed later without trapping the player.
-        count += wall_pair_with_gap(
-            mesh,
-            prefix=name,
-            side="North",
-            center=(x, y + half),
-            axis="X",
-            total_length=CHAMBER_SIZE,
-            gap_width=700.0,
-            ground_z=z,
-            folder=folder,
-        )
-        count += wall_pair_with_gap(
-            mesh,
-            prefix=name,
-            side="South",
-            center=(x, y - half),
-            axis="X",
-            total_length=CHAMBER_SIZE,
-            gap_width=700.0,
-            ground_z=z,
-            folder=folder,
-        )
-        count += wall_pair_with_gap(
-            mesh,
-            prefix=name,
-            side="West",
-            center=(x - half, y),
-            axis="Y",
-            total_length=CHAMBER_SIZE,
-            gap_width=700.0,
-            ground_z=z,
-            folder=folder,
-        )
-        count += wall_pair_with_gap(
-            mesh,
-            prefix=name,
-            side="East",
-            center=(x + half, y),
-            axis="Y",
-            total_length=CHAMBER_SIZE,
-            gap_width=700.0,
-            ground_z=z,
-            folder=folder,
-        )
-
         spawn_box(
             mesh,
             label=f"ZS_Sewer_Junction_{name}_Ceiling",
@@ -554,66 +473,14 @@ def create_junction_chambers(mesh: Any) -> int:
             size=(CHAMBER_SIZE, CHAMBER_SIZE, CORRIDOR_CEILING_THICKNESS),
             folder=folder,
         )
-        count += 1
+        count += 2
     return count
 
 
 def create_access_routes(mesh: Any) -> int:
     count = 0
     for access_id, start, end in ACCESS_ROUTES:
-        folder = f"ZombieSeasons/Sewers/Access/{access_id}"
-        floor = spawn_floor_segment(
-            mesh,
-            label=f"ZS_Sewer_Access_{access_id}_Floor",
-            stable_id=f"Sewer.Access.{access_id}.Floor",
-            start=start,
-            end=end,
-            width=ACCESS_WIDTH,
-            folder=folder,
-        )
-        count += 1
-
-        # Lightweight side barriers make steep/long greybox access surfaces readable
-        # without pretending they are final staircases or tunnel architecture.
-        center, length, yaw, _pitch = direction_transform(start, end)
-        dx = end[0] - start[0]
-        dy = end[1] - start[1]
-        horizontal = math.hypot(dx, dy)
-        if horizontal > 0.0:
-            nx = -dy / horizontal
-            ny = dx / horizontal
-            offset = ACCESS_WIDTH * 0.5 + ACCESS_BARRIER_THICKNESS * 0.5
-            for side, sign in (("Left", -1.0), ("Right", 1.0)):
-                spawn_box(
-                    mesh,
-                    label=f"ZS_Sewer_Access_{access_id}_Barrier_{side}",
-                    stable_id=f"Sewer.Access.{access_id}.Barrier.{side}",
-                    center=(
-                        center[0] + nx * offset * sign,
-                        center[1] + ny * offset * sign,
-                        center[2] + 90.0,
-                    ),
-                    size=(horizontal, ACCESS_BARRIER_THICKNESS, ACCESS_BARRIER_HEIGHT),
-                    folder=folder,
-                    yaw=yaw,
-                )
-                count += 1
-
-        # Add an editor-only access anchor so Stage 9 can replace greybox access with
-        # the correct hatch/gate interaction without searching by geometry.
-        spawn_box(
-            mesh,
-            label=f"ZS_Sewer_Access_{access_id}_Marker",
-            stable_id=f"Sewer.Access.{access_id}.Marker",
-            center=(start[0], start[1], start[2] + 160.0),
-            size=(120.0, 120.0, 320.0),
-            folder=folder,
-            collision=False,
-            gameplay_marker=True,
-            editor_only=True,
-        )
-        count += 1
-        _ = floor
+        count += spawn_access_floor(mesh, access_id, start, end)
     return count
 
 
@@ -621,10 +488,10 @@ def create_gameplay_markers(mesh: Any) -> int:
     count = 0
     for marker_name, junction_name, initially_open in LOCK_MARKERS:
         x, y, z = SEWER_JUNCTIONS[junction_name]
-        stable_suffix = "InitiallyOpen" if initially_open else "InitiallyLocked"
+        state = "InitiallyOpen" if initially_open else "InitiallyLocked"
         spawn_box(
             mesh,
-            label=f"ZS_Sewer_Lock_{marker_name}_{stable_suffix}",
+            label=f"ZS_Sewer_Lock_{marker_name}_{state}",
             stable_id=f"Sewer.Lock.{marker_name}",
             center=(x, y, z + 900.0),
             size=(120.0, 120.0, 1800.0),
@@ -653,20 +520,17 @@ def create_gameplay_markers(mesh: Any) -> int:
 
 
 def validate_topology() -> dict[str, float | int]:
-    # Validate source-of-truth width/height constraints and useful summary metrics.
     if not 500.0 <= CORRIDOR_WIDTH <= 700.0:
-        fail(f"Sewer corridor width violates frozen 500-700 cm contract: {CORRIDOR_WIDTH}")
+        fail(f"Sewer corridor width violates 500-700 cm contract: {CORRIDOR_WIDTH}")
     if not 1200.0 <= CHAMBER_SIZE <= 2000.0:
-        fail(f"Sewer chamber size violates frozen 1200-2000 cm contract: {CHAMBER_SIZE}")
+        fail(f"Sewer chamber size violates 1200-2000 cm contract: {CHAMBER_SIZE}")
 
     total_network_length = 0.0
-    longest_network_link = 0.0
+    longest_link = 0.0
     for _link_id, start_name, end_name in NETWORK_LINKS:
-        start = SEWER_JUNCTIONS[start_name]
-        end = SEWER_JUNCTIONS[end_name]
-        length = math.dist(start, end)
+        length = math.dist(SEWER_JUNCTIONS[start_name], SEWER_JUNCTIONS[end_name])
         total_network_length += length
-        longest_network_link = max(longest_network_link, length)
+        longest_link = max(longest_link, length)
 
     max_access_grade = 0.0
     for _access_id, start, end in ACCESS_ROUTES:
@@ -683,7 +547,7 @@ def validate_topology() -> dict[str, float | int]:
         "junction_count": len(SEWER_JUNCTIONS),
         "surface_access_count": len(ACCESS_ROUTES),
         "total_network_length_cm": total_network_length,
-        "longest_network_link_cm": longest_network_link,
+        "longest_network_link_cm": longest_link,
         "max_access_grade_percent": max_access_grade,
     }
 
@@ -698,7 +562,7 @@ def position_viewport() -> None:
         subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
         if subsystem is not None:
             subsystem.set_level_viewport_camera_info(
-                unreal.Vector(0.0, -10000.0, 28000.0),
+                unreal.Vector(0.0, -10000.0, 30000.0),
                 unreal.Rotator(roll=0.0, pitch=-70.0, yaw=-90.0),
             )
     except Exception as error:
