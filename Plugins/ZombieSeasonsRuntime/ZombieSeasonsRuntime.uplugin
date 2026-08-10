@@ -1,0 +1,19 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "0.1.0",
+  "FriendlyName": "ZombieSeasons Runtime",
+  "Description": "Runtime systems that consume deterministic ZombieSeasons gameplay markers.",
+  "Category": "Gameplay",
+  "CreatedBy": "ZombieSeasons",
+  "CanContainContent": false,
+  "IsBetaVersion": true,
+  "Installed": false,
+  "Modules": [
+    {
+      "Name": "ZombieSeasonsRuntime",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ]
+}
