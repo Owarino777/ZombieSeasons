@@ -102,7 +102,11 @@ def main():
         unreal.log("Stage 9G PASS: no SafeZoneContract changes were required.")
         return
 
-    if not unreal.EditorLevelLibrary.save_current_level():
+    level_editor_subsystem = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
+    if not level_editor_subsystem:
+        raise RuntimeError("LevelEditorSubsystem is unavailable; level was not saved.")
+
+    if not level_editor_subsystem.save_current_level():
         raise RuntimeError("Stage 9G changed the safe-zone marker but failed to save the current level.")
 
     unreal.log("Stage 9G PASS: {} SafeZoneContract actor(s) updated and level saved.".format(changed))
