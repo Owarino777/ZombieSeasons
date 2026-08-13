@@ -4,10 +4,12 @@
 #include "Components/ChildActorComponent.h"
 #include "EnhancedInputComponent.h"
 #include "Engine/World.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "HAL/IConsoleManager.h"
 #include "InputAction.h"
+#include "InputCoreTypes.h"
 #include "TimerManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogZombieSeasonsFPSCompatibility, Log, All);
@@ -23,13 +25,13 @@ namespace ZombieSeasonsFPSCompatibility
     static TAutoConsoleVariable<float> CVarStrafeScale(
         TEXT("zs.StrafeScale"),
         1.0f,
-        TEXT("Scale applied to the lateral component of INP_MoveAround."),
+        TEXT("Scale applied to deterministic AZERTY lateral movement."),
         ECVF_Default);
 
     static TAutoConsoleVariable<float> CVarVerticalLookScale(
         TEXT("zs.VerticalLookScale"),
         1.0f,
-        TEXT("Scale applied to the vertical component of INP_LookAround after IMC_FPS modifiers."),
+        TEXT("Scale applied to vertical INP_LookAround after IMC_FPS modifiers."),
         ECVF_Default);
 
     static TAutoConsoleVariable<float> CVarMaxLookPitch(
@@ -45,9 +47,6 @@ void UZSFPSCompatibilityRuntimeSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 {
     Super::OnWorldBeginPlay(InWorld);
 
-    MoveAction = LoadObject<UInputAction>(
-        nullptr,
-        TEXT("/Game/TopDownShooter/Core/Inputs/INP_MoveAround.INP_MoveAround"));
     LookAction = LoadObject<UInputAction>(
         nullptr,
         TEXT("/Game/TopDownShooter/Core/Inputs/INP_LookAround.INP_LookAround"));
@@ -65,8 +64,7 @@ void UZSFPSCompatibilityRuntimeSubsystem::OnWorldBeginPlay(UWorld& InWorld)
     UE_LOG(
         LogZombieSeasonsFPSCompatibility,
         Display,
-        TEXT("ZombieSeasons FPS compatibility started. MoveAction=%s LookAction=%s"),
-        *GetNameSafe(MoveAction),
+        TEXT("ZombieSeasons FPS compatibility started. LookAction=%s"),
         *GetNameSafe(LookAction));
 }
 
@@ -81,16 +79,53 @@ void UZSFPSCompatibilityRuntimeSubsystem::Deinitialize()
     BoundInputComponent.Reset();
     CachedCamera.Reset();
     CachedGun.Reset();
-    MoveAction = nullptr;
     LookAction = nullptr;
 
     Super::Deinitialize();
 }
 
+void UZSFPSCompatibilityRuntimeSubsystem::Tick(float DeltaTime)
+{
+    (void)DeltaTime;
+
+    if (ZombieSeasonsFPSCompatibility::CVarEnabled.GetValueOnGameThread() == 0)
+    {
+        return;
+    }
+
+    UWorld* World = GetWorld();
+    if (!World || !World->IsGameWorld())
+    {
+        return;
+    }
+
+    APlayerController* PlayerController = World->GetFirstPlayerController();
+    APawn* PlayerPawn = PlayerController ? PlayerController->GetPawn() : nullptr;
+    if (!IsValid(PlayerController) || !IsValid(PlayerPawn))
+    {
+        return;
+    }
+
+    if (CachedPawn.Get() != PlayerPawn)
+    {
+        CachedPawn = PlayerPawn;
+        BoundInputComponent.Reset();
+        RefreshViewComponents(PlayerPawn);
+        BindingPulse();
+    }
+
+    ApplyResponsiveStrafe(PlayerController, PlayerPawn);
+}
+
+TStatId UZSFPSCompatibilityRuntimeSubsystem::GetStatId() const
+{
+    RETURN_QUICK_DECLARE_CYCLE_STAT(UZSFPSCompatibilityRuntimeSubsystem, STATGROUP_Tickables);
+}
+
 void UZSFPSCompatibilityRuntimeSubsystem::BindingPulse()
 {
     UWorld* World = GetWorld();
-    if (!World || !World->IsGameWorld() || !MoveAction || !LookAction)
+    if (!World || !World->IsGameWorld() || !LookAction)
     {
         return;
     }
@@ -116,12 +151,6 @@ void UZSFPSCompatibilityRuntimeSubsystem::BindingPulse()
     {
         return;
     }
-
-    EnhancedInput->BindAction(
-        MoveAction,
-        ETriggerEvent::Triggered,
-        this,
-        &UZSFPSCompatibilityRuntimeSubsystem::HandleMoveInput);
 
     EnhancedInput->BindAction(
         LookAction,
@@ -214,27 +243,65 @@ void UZSFPSCompatibilityRuntimeSubsystem::RefreshViewComponents(APawn* PlayerPaw
     }
 }
 
-void UZSFPSCompatibilityRuntimeSubsystem::HandleMoveInput(const FInputActionValue& Value)
+void UZSFPSCompatibilityRuntimeSubsystem::ApplyResponsiveStrafe(
+    APlayerController* PlayerController,
+    APawn* PlayerPawn)
 {
-    APawn* PlayerPawn = CachedPawn.Get();
-    if (!IsValid(PlayerPawn))
+    if (!IsValid(PlayerController) || !IsValid(PlayerPawn))
     {
         return;
     }
 
-    const FVector2D MoveValue = Value.Get<FVector2D>();
-    if (FMath::IsNearlyZero(MoveValue.X))
+    const bool bLeftHeld = PlayerController->IsInputKeyDown(EKeys::Q);
+    const bool bRightHeld = PlayerController->IsInputKeyDown(EKeys::D);
+
+    UCharacterMovementComponent* Movement =
+        PlayerPawn->FindComponentByClass<UCharacterMovementComponent>();
+
+    FVector RightVector = PlayerPawn->GetActorRightVector();
+    RightVector.Z = 0.0f;
+    RightVector.Normalize();
+
+    if (RightVector.IsNearlyZero())
     {
         return;
+    }
+
+    // Pressing Q and D together must cancel lateral movement immediately instead
+    // of allowing the previous direction to keep winning for several frames.
+    if (bLeftHeld && bRightHeld)
+    {
+        if (Movement)
+        {
+            const float LateralSpeed = FVector::DotProduct(Movement->Velocity, RightVector);
+            Movement->Velocity -= RightVector * LateralSpeed;
+        }
+        return;
+    }
+
+    if (!bLeftHeld && !bRightHeld)
+    {
+        return;
+    }
+
+    const float Axis = bRightHeld ? 1.0f : -1.0f;
+
+    if (Movement)
+    {
+        const float LateralSpeed = FVector::DotProduct(Movement->Velocity, RightVector);
+
+        // On an immediate left/right reversal, remove the previous lateral inertia
+        // before applying the new input. This gives FPS-style responsive strafing.
+        if (LateralSpeed * Axis < 0.0f)
+        {
+            Movement->Velocity -= RightVector * LateralSpeed;
+        }
     }
 
     const float StrafeScale =
         ZombieSeasonsFPSCompatibility::CVarStrafeScale.GetValueOnGameThread();
 
-    PlayerPawn->AddMovementInput(
-        PlayerPawn->GetActorRightVector(),
-        MoveValue.X * StrafeScale,
-        false);
+    PlayerPawn->AddMovementInput(RightVector, Axis * StrafeScale, false);
 }
 
 void UZSFPSCompatibilityRuntimeSubsystem::HandleLookInput(const FInputActionValue& Value)
@@ -248,7 +315,9 @@ void UZSFPSCompatibilityRuntimeSubsystem::HandleLookInput(const FInputActionValu
     const float VerticalScale =
         ZombieSeasonsFPSCompatibility::CVarVerticalLookScale.GetValueOnGameThread();
 
-    ApplyPitchToView(-LookValue.Y * VerticalScale);
+    // The previous compatibility pass inverted the Y axis. Keep normal FPS mouse
+    // semantics here: mouse up looks up, mouse down looks down.
+    ApplyPitchToView(LookValue.Y * VerticalScale);
 }
 
 void UZSFPSCompatibilityRuntimeSubsystem::ApplyPitchToView(float PitchDeltaDegrees)
