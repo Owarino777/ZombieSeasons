@@ -14,23 +14,21 @@ class UInputAction;
 /**
  * Compatibility layer for the legacy Blueprint FPS controller.
  *
- * The existing Blueprint still owns forward/backward movement and horizontal
- * look. This layer binds to the same Enhanced Input actions and only supplies
- * the missing lateral movement and vertical camera/gun pitch.
+ * The existing Blueprint keeps forward/backward movement and horizontal look.
+ * This subsystem binds to the same Enhanced Input actions and only supplies
+ * lateral movement plus vertical first-person camera/weapon pitch.
  */
 UCLASS()
-class ZOMBIESEASONSRUNTIME_API UZSFPSCompatibilityRuntimeSubsystem final : public UTickableWorldSubsystem
+class ZOMBIESEASONSRUNTIME_API UZSFPSCompatibilityRuntimeSubsystem final : public UWorldSubsystem
 {
     GENERATED_BODY()
 
 public:
-    virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+    virtual void OnWorldBeginPlay(UWorld& InWorld) override;
     virtual void Deinitialize() override;
-    virtual void Tick(float DeltaTime) override;
-    virtual TStatId GetStatId() const override;
 
 private:
-    void EnsureInputBindings(APawn* PlayerPawn);
+    void BindingPulse();
     void RefreshViewComponents(APawn* PlayerPawn);
     void HandleMoveInput(const FInputActionValue& Value);
     void HandleLookInput(const FInputActionValue& Value);
@@ -41,9 +39,13 @@ private:
     TWeakObjectPtr<UCameraComponent> CachedCamera;
     TWeakObjectPtr<UChildActorComponent> CachedGun;
 
+    UPROPERTY()
     TObjectPtr<UInputAction> MoveAction = nullptr;
+
+    UPROPERTY()
     TObjectPtr<UInputAction> LookAction = nullptr;
 
+    FTimerHandle BindingTimerHandle;
     FRotator CameraBaseRotation = FRotator::ZeroRotator;
     FRotator GunBaseRotation = FRotator::ZeroRotator;
     float CurrentPitchDegrees = 0.0f;

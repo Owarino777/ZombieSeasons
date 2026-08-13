@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "HAL/IConsoleManager.h"
+#include "TimerManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogZombieSeasonsAimRuntime, Log, All);
 
@@ -84,10 +85,35 @@ void UZSPlayerAimRuntimeSubsystem::HandleActorSpawned(AActor* SpawnedActor)
         return;
     }
 
+    // First pass prevents the legacy muzzle rotation from owning the initial frame.
     CorrectProjectileAim(SpawnedActor);
+
+    // Blueprint BeginPlay / ProjectileMovement startup can still rewrite launch
+    // velocity. Reapply once on the next game tick after that initialization.
+    UWorld* World = GetWorld();
+    if (!World)
+    {
+        return;
+    }
+
+    TWeakObjectPtr<UZSPlayerAimRuntimeSubsystem> WeakSubsystem(this);
+    TWeakObjectPtr<AActor> WeakProjectile(SpawnedActor);
+
+    World->GetTimerManager().SetTimerForNextTick(
+        [WeakSubsystem, WeakProjectile]()
+        {
+            UZSPlayerAimRuntimeSubsystem* Subsystem = WeakSubsystem.Get();
+            AActor* Projectile = WeakProjectile.Get();
+
+            if (IsValid(Subsystem) && IsValid(Projectile))
+            {
+                Subsystem->CorrectProjectileAim(Projectile);
+            }
+        });
 }
 
-APlayerController* UZSPlayerAimRuntimeSubsystem::FindNearestPlayerController(const FVector& Location) const
+APlayerController* UZSPlayerAimRuntimeSubsystem::FindNearestPlayerController(
+    const FVector& Location) const
 {
     UWorld* World = GetWorld();
     if (!World)
@@ -107,7 +133,9 @@ APlayerController* UZSPlayerAimRuntimeSubsystem::FindNearestPlayerController(con
             continue;
         }
 
-        const float DistanceSquared = FVector::DistSquared(Location, PlayerPawn->GetActorLocation());
+        const float DistanceSquared =
+            FVector::DistSquared(Location, PlayerPawn->GetActorLocation());
+
         if (DistanceSquared < BestDistanceSquared)
         {
             BestDistanceSquared = DistanceSquared;
@@ -134,7 +162,9 @@ void UZSPlayerAimRuntimeSubsystem::CorrectProjectileAim(AActor* Projectile)
         return;
     }
 
-    APlayerController* PlayerController = FindNearestPlayerController(Projectile->GetActorLocation());
+    APlayerController* PlayerController =
+        FindNearestPlayerController(Projectile->GetActorLocation());
+
     if (!PlayerController)
     {
         return;
@@ -148,10 +178,12 @@ void UZSPlayerAimRuntimeSubsystem::CorrectProjectileAim(AActor* Projectile)
         1000.0f,
         ZombieSeasonsAimRuntime::CVarAimTraceDistance.GetValueOnGameThread());
 
-    const FVector ViewForward = ViewRotation.Vector();
-    const FVector TraceEnd = ViewLocation + ViewForward * TraceDistance;
+    const FVector TraceEnd = ViewLocation + ViewRotation.Vector() * TraceDistance;
 
-    FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(ZombieSeasonsPlayerAim), true);
+    FCollisionQueryParams QueryParams(
+        SCENE_QUERY_STAT(ZombieSeasonsPlayerAim),
+        true);
+
     QueryParams.AddIgnoredActor(Projectile);
 
     if (APawn* PlayerPawn = PlayerController->GetPawn())
@@ -166,6 +198,7 @@ void UZSPlayerAimRuntimeSubsystem::CorrectProjectileAim(AActor* Projectile)
 
     FHitResult Hit;
     UWorld* World = GetWorld();
+
     const bool bHit = World && World->LineTraceSingleByChannel(
         Hit,
         ViewLocation,
@@ -174,7 +207,9 @@ void UZSPlayerAimRuntimeSubsystem::CorrectProjectileAim(AActor* Projectile)
         QueryParams);
 
     const FVector AimPoint = bHit ? Hit.ImpactPoint : TraceEnd;
-    const FVector AimDirection = (AimPoint - Projectile->GetActorLocation()).GetSafeNormal();
+    const FVector AimDirection =
+        (AimPoint - Projectile->GetActorLocation()).GetSafeNormal();
+
     if (AimDirection.IsNearlyZero())
     {
         return;
@@ -184,31 +219,34 @@ void UZSPlayerAimRuntimeSubsystem::CorrectProjectileAim(AActor* Projectile)
 
     UProjectileMovementComponent* ProjectileMovement =
         Projectile->FindComponentByClass<UProjectileMovementComponent>();
+
     if (!ProjectileMovement)
     {
         UE_LOG(
             LogZombieSeasonsAimRuntime,
             Warning,
-            TEXT("Player projectile %s has no ProjectileMovementComponent; rotation corrected but velocity was not overridden."),
+            TEXT("Player projectile %s has no ProjectileMovementComponent; only actor rotation was corrected."),
             *GetNameSafe(Projectile));
         return;
     }
 
     float Speed = ProjectileMovement->InitialSpeed;
+
     if (Speed <= KINDA_SMALL_NUMBER)
     {
         Speed = ProjectileMovement->Velocity.Size();
     }
+
     if (Speed <= KINDA_SMALL_NUMBER)
     {
         Speed = 3000.0f;
     }
 
-    // The legacy BP_Projectile uses InitialVelocityInLocalSpace. Setting the actor
-    // rotation first, then explicitly applying local +X velocity guarantees that the
-    // projectile follows the camera/crosshair direction rather than the gun-arrow
-    // transform. Player locomotion velocity is deliberately not added to the shot.
-    ProjectileMovement->SetVelocityInLocalSpace(FVector(Speed, 0.0f, 0.0f));
+    // BP_Projectile starts with local +X velocity. Explicit world-space velocity
+    // after startup keeps the shot independent from player locomotion and the
+    // legacy Gun child-actor transform.
+    ProjectileMovement->bInitialVelocityInLocalSpace = false;
+    ProjectileMovement->Velocity = AimDirection * Speed;
     ProjectileMovement->UpdateComponentVelocity();
 
     UE_LOG(

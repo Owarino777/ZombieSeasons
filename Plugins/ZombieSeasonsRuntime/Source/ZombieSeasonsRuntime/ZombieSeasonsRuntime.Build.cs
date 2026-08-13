@@ -13,7 +13,8 @@ public class ZombieSeasonsRuntime : ModuleRules
                 "CoreUObject",
                 "Engine",
                 "AIModule",
-                "NavigationSystem"
+                "NavigationSystem",
+                "EnhancedInput"
             }
         );
     }
