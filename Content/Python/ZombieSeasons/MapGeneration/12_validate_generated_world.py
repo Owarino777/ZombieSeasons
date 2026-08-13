@@ -190,7 +190,10 @@ def main(show_dialog: bool = True):
             spawn_counts[district] += 1
             spawn_actors.append(actor)
             location = actor.get_actor_location()
-            if math.hypot(location.x, location.y) < HUB_PROTECTED_RADIUS:
+            # The protected-Hub rule applies to Hub-owned surface spawn markers.
+            # Sewers deliberately pass below the Hub and can share the same XY radius
+            # without being inside the protected Hub interior.
+            if district == "Hub" and math.hypot(location.x, location.y) < HUB_PROTECTED_RADIUS:
                 hub_spawn_violations.append(_label(actor))
         if role == "LootPoint":
             if "ZS.LootTier.HighValue" in actor_tags:
@@ -211,7 +214,9 @@ def main(show_dialog: bool = True):
         if actual != expected:
             errors.append(f"{district} spawns: expected {expected}, got {actual}")
     if hub_spawn_violations:
-        errors.append(f"{len(hub_spawn_violations)} zombie spawn marker(s) are inside the 6000 cm Hub radius.")
+        errors.append(
+            f"{len(hub_spawn_violations)} Hub-owned zombie spawn marker(s) are inside the 6000 cm protected Hub radius."
+        )
 
     lighting = [actor for actor in actors if actor_has_tag(actor, LIGHTING_STAGE_TAG)]
     if len(lighting) != 4:
