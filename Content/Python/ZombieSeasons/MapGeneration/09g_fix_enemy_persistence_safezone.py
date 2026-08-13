@@ -26,14 +26,24 @@ def _has_tag(tags, expected):
 
 
 def main():
-    world = unreal.EditorLevelLibrary.get_editor_world()
+    editor_subsystem = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+    if not editor_subsystem:
+        raise RuntimeError("UnrealEditorSubsystem is unavailable.")
+
+    # UE 5.5's Python World wrapper does not expose a `world_type` property.
+    # Ask the editor subsystem directly whether a PIE/game world exists instead.
+    game_world = editor_subsystem.get_game_world()
+    if game_world:
+        raise RuntimeError("Stop PIE before running Stage 9G.")
+
+    world = editor_subsystem.get_editor_world()
     if not world:
         raise RuntimeError("No editor world is currently open.")
 
-    if world.world_type != unreal.WorldType.EDITOR:
-        raise RuntimeError("Stop PIE before running Stage 9G.")
-
     actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+    if not actor_subsystem:
+        raise RuntimeError("EditorActorSubsystem is unavailable.")
+
     actors = actor_subsystem.get_all_level_actors()
 
     changed = 0
@@ -69,7 +79,8 @@ def main():
         if not any(tag.startswith(DESIGN_RADIUS_PREFIX) for tag in new_tags):
             new_tags.append(design_tag)
 
-        new_tags.append(RUNTIME_RADIUS_PREFIX + str(RUNTIME_RADIUS_CM).rstrip("0").rstrip("."))
+        runtime_radius_tag = RUNTIME_RADIUS_PREFIX + str(RUNTIME_RADIUS_CM).rstrip("0").rstrip(".")
+        new_tags.append(runtime_radius_tag)
         actor.set_editor_property("tags", [unreal.Name(tag) for tag in new_tags])
         changed += 1
 
@@ -88,7 +99,7 @@ def main():
         )
 
     if changed == 0:
-        unreal.log("Stage 9G: no SafeZoneContract changes were required.")
+        unreal.log("Stage 9G PASS: no SafeZoneContract changes were required.")
         return
 
     if not unreal.EditorLevelLibrary.save_current_level():
