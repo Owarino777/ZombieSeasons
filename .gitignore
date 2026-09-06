@@ -30,3 +30,5 @@ Content/Street_Props_Pack_V1/
 
 # Generated local validation galleries
 Content/ZombieSeasons/Validation/AssetGallery/
+$backup/
+*_backup*/
