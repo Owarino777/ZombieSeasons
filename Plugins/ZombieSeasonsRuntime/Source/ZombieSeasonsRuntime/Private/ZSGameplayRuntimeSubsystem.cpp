@@ -3,6 +3,7 @@
 #include "AIController.h"
 #include "Engine/TargetPoint.h"
 #include "Engine/World.h"
+#include "GameFramework/WorldSettings.h"
 #include "EngineUtils.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
@@ -85,6 +86,13 @@ void UZSGameplayRuntimeSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 
     if (InWorld.GetNetMode() == NM_Client)
     {
+        return;
+    }
+
+    // School owns its local progression; legacy worlds retain their existing behavior.
+    if (InWorld.GetWorldSettings()->ActorHasTag(TEXT("ZS.Scenario.School")))
+    {
+        UE_LOG(LogZombieSeasonsRuntime, Display, TEXT("Legacy map objectives disabled for school scenario."));
         return;
     }
 
