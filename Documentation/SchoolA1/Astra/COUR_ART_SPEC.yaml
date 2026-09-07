@@ -1,0 +1,65 @@
+version: 1
+context:
+  project: ZombieSeasons
+  engine: "5.5.4"
+  level: L_ZS_School_Expedition
+  units: centimeters
+  scene_manifest: COUR_SCENE.json
+scope:
+  zone_id: school_start_courtyard
+  production_stage: vertical_slice
+  status: in_progress
+production_goal:
+  target: credible commercial vertical-slice environment
+  quality_question: "Could this view appear for 30 seconds in a Steam trailer without a WIP disclaimer?"
+world_state:
+  location_type: french_municipal_school
+  abandonment_age_days_approx: 21
+  season: late_autumn
+  recent_weather: [rain, damp_conditions]
+  avoid: [decades_of_overgrowth, extreme_rust_everywhere, massive_structural_collapse, excessive_gore, post_apocalyptic_jungle, random_prop_scatter]
+visual_direction:
+  exterior: {temperature: cold, weather: overcast, contrast: controlled, sunlight: subdued}
+  interior: {relationship_to_exterior: warmer, warmth: restrained, motivation: visible_practical_lights}
+  palette: [cold_grey, off_white, desaturated_school_green_blue, wet_concrete, wet_asphalt, autumn_brown]
+composition:
+  center_playable_space: {clear_ratio_min: 0.60, clear_ratio_max: 0.70, requirement: keep_clear}
+  primary_focal_point: service_or_school_entrance
+  secondary_focal_point: radio_point
+  avoid: [symmetrical_dressing, evenly_spaced_props, center_filled_with_props, decoration_without_story_or_function]
+gameplay_protection:
+  preserve_mission_flow: true
+  preserve_player_spawn: true
+  preserve_existing_objectives: true
+  preserve_enemy_navigation: true
+  preserve_access_to_entrance: true
+  protected_label_prefixes: [Scenario, Commande, Attente, Trigger, PlayerStart, Objective, Spawn, Nav, Interaction, Compteur]
+areas:
+  entrance:
+    priority: critical
+    desired_details: [visible_wall_lighting, ventilation, electrical_box, gutter_or_downpipe, threshold_detail, construction_joints, localized_weathering]
+  radio_point:
+    priority: high
+    desired_cluster: [table, radio_equipment, practical_lamp, chair, small_cases]
+  evacuation_checkpoint:
+    priority: high
+    limits: {table_max: 1, chairs_max: 2, barriers_max: 2, cones_max: 2, bags_or_cases_max: 3}
+ground:
+  target: aged_wet_asphalt_or_concrete
+  avoid: [bright_uniform_ground, full_surface_mirror, obvious_texture_repetition]
+  desired: [cracks, repaired_areas, drainage, damp_edges, small_puddles, leaf_accumulation]
+wetness:
+  placement_logic: [drains, wall_bases, downpipes, low_points, protected_corners]
+  avoid: [arbitrary_puddles, uniform_wetness, mirror_like_whole_ground]
+asset_policy:
+  preference_order: [existing_project_assets, already_available_epic_content, already_available_megascans, new_external_asset_only_if_gap_is_significant]
+  inspect_before_use: [scale, style, pivot, material_quality, collision, performance]
+lighting_policy:
+  practical_light_rule: visible_source_required_for_new_local_lights
+  legacy_interior_fill_may_remain_temporarily: true
+review:
+  player_height_required: true
+  pie_required_before_final_acceptance: true
+  check: [visual_hierarchy, center_playable_space, entrance_access, collision, navigation_if_affected, objective_flow, lighting_regression]
+definition_of_done:
+  required: [entrance_is_primary_visual_focus, ground_has_realistic_material_response, wetness_is_physically_plausible, facade_no_longer_reads_as_flat_greybox, courtyard_tells_recent_evacuation_story, central_gameplay_space_remains_clear, existing_gameplay_still_works]
